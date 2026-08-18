@@ -26,15 +26,24 @@ connectCloudinary()
 app.use(express.json())
 
 // CORS configuration for development and production
-const allowedOrigins = process.env.NODE_ENV === 'production'
-  ? [
+const parseAllowedOrigins = () => {
+  const envOrigins = process.env.ALLOWED_ORIGINS
+  if (envOrigins) {
+    return envOrigins.split(',').map((origin) => origin.trim()).filter(Boolean)
+  }
+
+  if (process.env.NODE_ENV === 'production') {
+    return [
       'https://your-frontend-url.vercel.app',
       'https://your-admin-url.vercel.app'
     ]
-  : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5176', 'http://localhost:4173']
+  }
+
+  return ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5176', 'http://localhost:4173']
+}
 
 app.use(cors({
-  origin: allowedOrigins,
+  origin: parseAllowedOrigins(),
   credentials: true
 }))
 

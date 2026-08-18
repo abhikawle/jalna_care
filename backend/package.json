@@ -9,9 +9,8 @@
     "build": "echo No build step required for backend"
   },
   "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=9.0.0"
-  },
+  "node": "22.x"
+},
   "author": "",
   "license": "ISC",
   "description": "",
