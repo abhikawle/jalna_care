@@ -137,9 +137,25 @@ const doctorProfile = async (req, res) => {
 const updateDoctorProfile = async (req, res) => {
     try {
 
-        const { docId, fees, address, available } = req.body
+        const { docId, fees, address, available, about, clinicName, clinicAddress, consultationModes, sameDayAvailable } = req.body
 
-        await doctorModel.findByIdAndUpdate(docId, { fees, address, available })
+        const updateData = { fees, address, available, about }
+        
+        // Update clinic info if provided
+        if (clinicName) updateData.clinicName = clinicName
+        if (clinicAddress) updateData.clinicAddress = clinicAddress
+        
+        // Update consultation modes if provided
+        if (consultationModes && Array.isArray(consultationModes)) {
+            updateData.consultationModes = consultationModes
+        }
+        
+        // Update same-day availability if provided
+        if (sameDayAvailable !== undefined) {
+            updateData.sameDayAvailable = sameDayAvailable
+        }
+
+        await doctorModel.findByIdAndUpdate(docId, updateData)
 
         res.json({ success: true, message: 'Profile Updated' })
 
@@ -156,12 +172,27 @@ const doctorDashboard = async (req, res) => {
         const { docId } = req.body
 
         const appointments = await appointmentModel.find({ docId })
+        const docData = await doctorModel.findById(docId)
 
         let earnings = 0
+        let sameDayAppointments = 0
+        let videoAppointments = 0
+        let inClinicAppointments = 0
+        let urgentAppointments = 0
 
         appointments.map((item) => {
             if (item.isCompleted || item.payment) {
                 earnings += item.amount
+            }
+            if (item.isUrgent) {
+                urgentAppointments++
+            }
+            if (item.consultationType === 'same-day') {
+                sameDayAppointments++
+            } else if (item.consultationType === 'video') {
+                videoAppointments++
+            } else if (item.consultationType === 'in-clinic') {
+                inClinicAppointments++
             }
         })
 
@@ -179,10 +210,80 @@ const doctorDashboard = async (req, res) => {
             earnings,
             appointments: appointments.length,
             patients: patients.length,
-            latestAppointments: appointments.reverse()
+            latestAppointments: appointments.reverse(),
+            sameDayAppointments,
+            videoAppointments,
+            inClinicAppointments,
+            urgentAppointments,
+            consultationModes: docData.consultationModes || ['in-clinic'],
+            sameDayAvailable: docData.sameDayAvailable || false,
+            avgRating: docData.avgRating || 0
         }
 
         res.json({ success: true, dashData })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+// API to search and filter providers (JalnaCare discovery feature)
+const searchProviders = async (req, res) => {
+    try {
+
+        const { query, speciality, verified, sortBy, page = 1, limit = 10 } = req.body
+
+        let filter = { verificationStatus: 'verified' } // Only show verified providers by default
+
+        // Search by name or clinic name
+        if (query) {
+            filter.$or = [
+                { name: { $regex: query, $options: 'i' } },
+                { clinicName: { $regex: query, $options: 'i' } },
+                { about: { $regex: query, $options: 'i' } }
+            ]
+        }
+
+        // Filter by speciality
+        if (speciality) {
+            filter.speciality = { $regex: speciality, $options: 'i' }
+        }
+
+        // Filter by verification if explicitly requested
+        if (verified !== undefined) {
+            filter.isVerified = verified
+        }
+
+        // Determine sort order
+        let sortObj = { avgRating: -1, date: -1 } // Default: by rating, then newest
+        if (sortBy === 'fee-low') {
+            sortObj = { fees: 1 }
+        } else if (sortBy === 'fee-high') {
+            sortObj = { fees: -1 }
+        } else if (sortBy === 'experience') {
+            sortObj = { experience: -1 }
+        }
+
+        const skip = (page - 1) * limit
+        const providers = await doctorModel.find(filter)
+            .select('-password -email')
+            .sort(sortObj)
+            .skip(skip)
+            .limit(limit)
+
+        const totalCount = await doctorModel.countDocuments(filter)
+
+        res.json({
+            success: true,
+            providers,
+            pagination: {
+                page,
+                limit,
+                total: totalCount,
+                pages: Math.ceil(totalCount / limit)
+            }
+        })
 
     } catch (error) {
         console.log(error)
@@ -199,5 +300,6 @@ export {
     appointmentComplete,
     doctorDashboard,
     doctorProfile,
-    updateDoctorProfile
+    updateDoctorProfile,
+    searchProviders
 }

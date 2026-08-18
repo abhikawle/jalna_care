@@ -18,7 +18,11 @@ const DoctorProfile = () => {
                 address: profileData.address,
                 fees: profileData.fees,
                 about: profileData.about,
-                available: profileData.available
+                available: profileData.available,
+                clinicName: profileData.clinicName || '',
+                clinicAddress: profileData.clinicAddress || '',
+                consultationModes: profileData.consultationModes || ['in-clinic'],
+                sameDayAvailable: profileData.sameDayAvailable || false
             }
 
             const { data } = await axios.post(backendUrl + '/api/doctor/update-profile', updateData, { headers: { dToken } })
@@ -38,6 +42,21 @@ const DoctorProfile = () => {
             console.log(error)
         }
 
+    }
+
+    const toggleConsultationMode = (mode) => {
+        const currentModes = profileData.consultationModes || ['in-clinic']
+        if (currentModes.includes(mode)) {
+            setProfileData(prev => ({
+                ...prev,
+                consultationModes: currentModes.filter(m => m !== mode)
+            }))
+        } else {
+            setProfileData(prev => ({
+                ...prev,
+                consultationModes: [...currentModes, mode]
+            }))
+        }
     }
 
     useEffect(() => {
@@ -88,7 +107,82 @@ const DoctorProfile = () => {
                         </p>
                     </div>
 
-                    <div className='flex gap-1 pt-2'>
+                    {/* ----- Clinic Info ----- */}
+                    <div className='mt-4 pt-4 border-t'>
+                        <p className='text-sm font-medium text-[#262626] mb-3'>Clinic Information:</p>
+                        <div className='flex gap-2 py-2 mb-3'>
+                            <p className='text-sm font-medium'>Clinic Name:</p>
+                            <p className='text-sm'>
+                                {isEdit 
+                                    ? <input type='text' placeholder='Your clinic name' onChange={(e) => setProfileData(prev => ({ ...prev, clinicName: e.target.value }))} value={profileData.clinicName || ''} className='border rounded p-1 text-xs w-48' />
+                                    : profileData.clinicName || 'Not specified'
+                                }
+                            </p>
+                        </div>
+                        <div className='flex gap-2 py-2 mb-3'>
+                            <p className='text-sm font-medium'>Clinic Address:</p>
+                            <p className='text-sm'>
+                                {isEdit 
+                                    ? <input type='text' placeholder='Your clinic address' onChange={(e) => setProfileData(prev => ({ ...prev, clinicAddress: e.target.value }))} value={profileData.clinicAddress || ''} className='border rounded p-1 text-xs w-48' />
+                                    : profileData.clinicAddress || 'Not specified'
+                                }
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* ----- Consultation Modes ----- */}
+                    <div className='mt-4 pt-4 border-t'>
+                        <p className='text-sm font-medium text-[#262626] mb-3'>Consultation Modes:</p>
+                        <div className='flex gap-6 flex-wrap'>
+                            <div className='flex gap-2 items-center'>
+                                <input 
+                                    type='checkbox' 
+                                    id='in-clinic'
+                                    disabled={!isEdit}
+                                    checked={(profileData.consultationModes || ['in-clinic']).includes('in-clinic')}
+                                    onChange={() => isEdit && toggleConsultationMode('in-clinic')}
+                                />
+                                <label htmlFor='in-clinic' className='text-sm'>🏥 In-Clinic</label>
+                            </div>
+                            <div className='flex gap-2 items-center'>
+                                <input 
+                                    type='checkbox' 
+                                    id='video'
+                                    disabled={!isEdit}
+                                    checked={(profileData.consultationModes || ['in-clinic']).includes('video')}
+                                    onChange={() => isEdit && toggleConsultationMode('video')}
+                                />
+                                <label htmlFor='video' className='text-sm'>📱 Video Call</label>
+                            </div>
+                            <div className='flex gap-2 items-center'>
+                                <input 
+                                    type='checkbox' 
+                                    id='same-day'
+                                    disabled={!isEdit}
+                                    checked={(profileData.consultationModes || ['in-clinic']).includes('same-day')}
+                                    onChange={() => isEdit && toggleConsultationMode('same-day')}
+                                />
+                                <label htmlFor='same-day' className='text-sm'>⚡ Same-Day Urgent</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* ----- Same-Day Availability ----- */}
+                    <div className='mt-4 pt-4 border-t'>
+                        <div className='flex gap-2 items-center'>
+                            <input 
+                                type='checkbox' 
+                                id='same-day-avail'
+                                disabled={!isEdit}
+                                checked={profileData.sameDayAvailable || false}
+                                onChange={() => isEdit && setProfileData(prev => ({ ...prev, sameDayAvailable: !prev.sameDayAvailable }))}
+                            />
+                            <label htmlFor='same-day-avail' className='text-sm font-medium'>⚡ Available for Same-Day Urgent Appointments</label>
+                        </div>
+                        <p className='text-xs text-gray-500 mt-2 ml-6'>Enable this if you can accept urgent same-day bookings from patients</p>
+                    </div>
+
+                    <div className='flex gap-1 pt-4'>
                         <input type="checkbox" onChange={() => isEdit && setProfileData(prev => ({ ...prev, available: !prev.available }))} checked={profileData.available} />
                         <label htmlFor="">Available</label>
                     </div>

@@ -18,14 +18,19 @@ const Navbar = () => {
 
   return (
     <div className='flex items-center justify-between text-sm py-4 mb-5 border-b border-b-[#ADADAD]'>
-      <img onClick={() => navigate('/')} className='w-44 cursor-pointer' src={assets.logo} alt="" />
+      <div onClick={() => navigate('/')} className='flex cursor-pointer items-center gap-3'>
+        <div>
+          <p className='text-lg font-bold tracking-wide text-[#1b443a]'>JalnaCare</p>
+          <p className='text-[10px] uppercase tracking-[0.18em] text-gray-500'>Jalna, Maharashtra</p>
+        </div>
+      </div>
       <ul className='md:flex items-start gap-5 font-medium hidden'>
         <NavLink to='/' >
           <li className='py-1'>HOME</li>
           <hr className='border-none outline-none h-0.5 bg-primary w-3/5 m-auto hidden' />
         </NavLink>
         <NavLink to='/doctors' >
-          <li className='py-1'>ALL DOCTORS</li>
+          <li className='py-1'>PROVIDERS</li>
           <hr className='border-none outline-none h-0.5 bg-primary w-3/5 m-auto hidden' />
         </NavLink>
         <NavLink to='/about' >

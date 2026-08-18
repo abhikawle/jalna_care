@@ -12,10 +12,10 @@ const About = () => {
       <div className='my-10 flex flex-col md:flex-row gap-12'>
         <img className='w-full md:max-w-[360px]' src={assets.about_image} alt="" />
         <div className='flex flex-col justify-center gap-6 md:w-2/4 text-sm text-gray-600'>
-          <p>Welcome to Prescripto, your trusted partner in managing your healthcare needs conveniently and efficiently. At Prescripto, we understand the challenges individuals face when it comes to scheduling doctor appointments and managing their health records.</p>
-          <p>Prescripto is committed to excellence in healthcare technology. We continuously strive to enhance our platform, integrating the latest advancements to improve user experience and deliver superior service. Whether you're booking your first appointment or managing ongoing care, Prescripto is here to support you every step of the way.</p>
-          <b className='text-gray-800'>Our Vision</b>
-          <p>Our vision at Prescripto is to create a seamless healthcare experience for every user. We aim to bridge the gap between patients and healthcare providers, making it easier for you to access the care you need, when you need it.</p>
+          <p>Welcome to JalnaCare, your local healthcare discovery platform built for Jalna, Maharashtra. We help patients find trusted physiotherapists, dentists, clinics, specialists, and general physicians without the confusion of scattered information.</p>
+          <p>JalnaCare is designed to make healthcare access simpler and more reliable for local families. From booking a consult to discovering nearby care, we focus on convenience, trust, and a clear patient experience tailored to Jalna.</p>
+          <b className='text-gray-800'>Our Mission</b>
+          <p>Our mission is to make quality healthcare easier to discover, book, and trust for every resident of Jalna. We connect people with verified providers and simplified booking tools that save time and reduce uncertainty.</p>
         </div>
       </div>
 

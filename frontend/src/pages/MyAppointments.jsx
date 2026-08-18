@@ -12,6 +12,11 @@ const MyAppointments = () => {
 
     const [appointments, setAppointments] = useState([])
     const [payment, setPayment] = useState('')
+    const [showReviewModal, setShowReviewModal] = useState(false)
+    const [selectedAppointment, setSelectedAppointment] = useState(null)
+    const [rating, setRating] = useState(5)
+    const [comment, setComment] = useState('')
+    const [reviewLoading, setReviewLoading] = useState(false)
 
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -53,6 +58,51 @@ const MyAppointments = () => {
             toast.error(error.message)
         }
 
+    }
+
+    // Function to open review modal
+    const openReviewModal = (appointment) => {
+        setSelectedAppointment(appointment)
+        if (appointment.hasReview && appointment.review) {
+            setRating(appointment.review.rating)
+            setComment(appointment.review.comment)
+        } else {
+            setRating(5)
+            setComment('')
+        }
+        setShowReviewModal(true)
+    }
+
+    // Function to submit review
+    const submitReview = async () => {
+        if (!selectedAppointment) return
+
+        try {
+            setReviewLoading(true)
+            const { data } = await axios.post(
+                backendUrl + '/api/review/submit',
+                {
+                    appointmentId: selectedAppointment._id,
+                    docId: selectedAppointment.docId,
+                    rating,
+                    comment
+                },
+                { headers: { token } }
+            )
+
+            if (data.success) {
+                toast.success(data.message)
+                setShowReviewModal(false)
+                getUserAppointments()
+            } else {
+                toast.error(data.message)
+            }
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+        } finally {
+            setReviewLoading(false)
+        }
     }
 
     const initPay = (order) => {
@@ -135,6 +185,16 @@ const MyAppointments = () => {
                         <div className='flex-1 text-sm text-[#5E5E5E]'>
                             <p className='text-[#262626] text-base font-semibold'>{item.docData.name}</p>
                             <p>{item.docData.speciality}</p>
+                            <div className='mt-2 flex flex-wrap gap-2'>
+                                {item.consultationType && (
+                                    <span className='rounded-full bg-[#edf7f5] px-2 py-1 text-xs font-medium text-[#1f7a6d]'>
+                                        {item.consultationType === 'same-day' ? '⚡ Same-day' : item.consultationType === 'video' ? '📱 Video' : '🏥 In-clinic'}
+                                    </span>
+                                )}
+                                {item.isUrgent && (
+                                    <span className='rounded-full bg-orange-100 px-2 py-1 text-xs font-medium text-orange-700'>Urgent</span>
+                                )}
+                            </div>
                             <p className='text-[#464646] font-medium mt-1'>Address:</p>
                             <p className=''>{item.docData.address.line1}</p>
                             <p className=''>{item.docData.address.line2}</p>
@@ -147,7 +207,8 @@ const MyAppointments = () => {
                             {!item.cancelled && !item.payment && !item.isCompleted && payment === item._id && <button onClick={() => appointmentRazorpay(item._id)} className='text-[#696969] sm:min-w-48 py-2 border rounded hover:bg-gray-100 hover:text-white transition-all duration-300 flex items-center justify-center'><img className='max-w-20 max-h-5' src={assets.razorpay_logo} alt="" /></button>}
                             {!item.cancelled && item.payment && !item.isCompleted && <button className='sm:min-w-48 py-2 border rounded text-[#696969]  bg-[#EAEFFF]'>Paid</button>}
 
-                            {item.isCompleted && <button className='sm:min-w-48 py-2 border border-green-500 rounded text-green-500'>Completed</button>}
+                            {item.isCompleted && !item.hasReview && <button onClick={() => openReviewModal(item)} className='sm:min-w-48 py-2 border border-blue-500 rounded text-blue-500 hover:bg-blue-50 transition-all'>Rate Doctor</button>}
+                            {item.isCompleted && item.hasReview && <button onClick={() => openReviewModal(item)} className='sm:min-w-48 py-2 border border-green-500 rounded text-green-500 flex items-center justify-center gap-1'>⭐ {item.review?.rating} | Edit</button>}
 
                             {!item.cancelled && !item.isCompleted && <button onClick={() => cancelAppointment(item._id)} className='text-[#696969] sm:min-w-48 py-2 border rounded hover:bg-red-600 hover:text-white transition-all duration-300'>Cancel appointment</button>}
                             {item.cancelled && !item.isCompleted && <button className='sm:min-w-48 py-2 border border-red-500 rounded text-red-500'>Appointment cancelled</button>}
@@ -155,6 +216,67 @@ const MyAppointments = () => {
                     </div>
                 ))}
             </div>
+
+            {/* Review Modal */}
+            {showReviewModal && selectedAppointment && (
+                <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50'>
+                    <div className='bg-white rounded-lg shadow-lg max-w-md w-full p-6'>
+                        <div className='flex justify-between items-center mb-4'>
+                            <h3 className='text-lg font-semibold text-gray-800'>Rate your experience</h3>
+                            <button onClick={() => setShowReviewModal(false)} className='text-gray-500 hover:text-gray-700 text-2xl'>×</button>
+                        </div>
+
+                        <p className='text-sm text-gray-600 mb-2'>Dr. {selectedAppointment.docData.name}</p>
+
+                        {/* Star Rating */}
+                        <div className='mb-4'>
+                            <label className='block text-sm font-medium text-gray-700 mb-2'>Rating</label>
+                            <div className='flex gap-2'>
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                    <button
+                                        key={star}
+                                        onClick={() => setRating(star)}
+                                        className={`text-3xl transition-all ${
+                                            star <= rating ? 'text-yellow-400' : 'text-gray-300'
+                                        }`}
+                                    >
+                                        ★
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Comment */}
+                        <div className='mb-4'>
+                            <label className='block text-sm font-medium text-gray-700 mb-2'>Your feedback (optional)</label>
+                            <textarea
+                                value={comment}
+                                onChange={(e) => setComment(e.target.value)}
+                                placeholder='Share your experience...'
+                                className='w-full border border-gray-300 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary'
+                                rows='3'
+                            />
+                        </div>
+
+                        {/* Buttons */}
+                        <div className='flex gap-2'>
+                            <button
+                                onClick={() => setShowReviewModal(false)}
+                                className='flex-1 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-all'
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={submitReview}
+                                disabled={reviewLoading}
+                                className='flex-1 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all disabled:opacity-50'
+                            >
+                                {reviewLoading ? 'Submitting...' : 'Submit Review'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

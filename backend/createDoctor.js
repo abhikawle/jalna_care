@@ -5,7 +5,7 @@ import 'dotenv/config';
 
 const createDoctor = async () => {
     try {
-        await mongoose.connect(`${process.env.MONGODB_URI}/prescripto`);
+        await mongoose.connect(`${process.env.MONGODB_URI}/jalnacare`);
         console.log("DB Connected");
 
         const email = "admin@example.com";

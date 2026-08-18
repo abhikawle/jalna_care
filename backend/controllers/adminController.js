@@ -13,7 +13,11 @@ const loginAdmin = async (req, res) => {
         const { email, password } = req.body
 
         if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
-            const token = jwt.sign(email + password, process.env.JWT_SECRET)
+            console.log('=== ADMIN LOGIN: Signing token ===')
+            console.log('Secret:', process.env.JWT_SECRET)
+            console.log('Secret length:', process.env.JWT_SECRET ? process.env.JWT_SECRET.length : 0)
+            const token = jwt.sign({ email: process.env.ADMIN_EMAIL }, process.env.JWT_SECRET, { expiresIn: '8h' })
+            console.log('Token created:', token)
             res.json({ success: true, token })
         } else {
             res.json({ success: false, message: "Invalid credentials" })
@@ -88,6 +92,8 @@ const addDoctor = async (req, res) => {
         const imageUpload = await cloudinary.uploader.upload(imageFile.path, { resource_type: "image" })
         const imageUrl = imageUpload.secure_url
 
+        const parsedAddress = typeof address === 'string' ? JSON.parse(address) : address
+
         const doctorData = {
             name,
             email,
@@ -98,7 +104,12 @@ const addDoctor = async (req, res) => {
             experience,
             about,
             fees,
-            address: JSON.parse(address),
+            address: parsedAddress,
+            clinicName: name,
+            clinicAddress: parsedAddress,
+            providerType: 'individual',
+            verificationStatus: 'pending',
+            isVerified: false,
             date: Date.now()
         }
 
@@ -148,11 +159,63 @@ const adminDashboard = async (req, res) => {
     }
 }
 
+// API to update provider verification status (JalnaCare feature)
+const updateProviderVerification = async (req, res) => {
+    try {
+
+        const { docId, verificationStatus, rejectionReason } = req.body
+
+        if (!docId || !verificationStatus) {
+            return res.json({ success: false, message: "Missing Details" })
+        }
+
+        const validStatuses = ['pending', 'verified', 'rejected', 'suspended']
+        if (!validStatuses.includes(verificationStatus)) {
+            return res.json({ success: false, message: "Invalid verification status" })
+        }
+
+        const updateData = {
+            verificationStatus,
+            isVerified: verificationStatus === 'verified' ? true : false,
+        }
+
+        if (verificationStatus === 'verified') {
+            updateData.verificationDate = new Date()
+        }
+
+        if (verificationStatus === 'rejected' && rejectionReason) {
+            updateData.rejectionReason = rejectionReason
+        }
+
+        await doctorModel.findByIdAndUpdate(docId, updateData)
+        res.json({ success: true, message: 'Provider verification status updated' })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+// API to get pending provider applications
+const getPendingProviders = async (req, res) => {
+    try {
+
+        const pendingDoctors = await doctorModel.find({ verificationStatus: 'pending' }).select('-password')
+        res.json({ success: true, providers: pendingDoctors })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
 export {
     loginAdmin,
     appointmentsAdmin,
     appointmentCancel,
     addDoctor,
     allDoctors,
-    adminDashboard
+    adminDashboard,
+    updateProviderVerification,
+    getPendingProviders
 }

@@ -43,7 +43,39 @@ const DoctorDashboard = () => {
             <p className='text-xl font-semibold text-gray-600'>{dashData.patients}</p>
             <p className='text-gray-400'>Patients</p></div>
         </div>
+        <div className='flex items-center gap-2 bg-white p-4 min-w-52 rounded border-2 border-gray-100 cursor-pointer hover:scale-105 transition-all'>
+          <div className='text-2xl'>⭐</div>
+          <div>
+            <p className='text-xl font-semibold text-gray-600'>{dashData.avgRating}</p>
+            <p className='text-gray-400'>Rating</p>
+          </div>
+        </div>
       </div>
+
+      {/* Consultation Mode Breakdown */}
+      {(dashData.inClinicAppointments > 0 || dashData.videoAppointments > 0 || dashData.sameDayAppointments > 0) && (
+        <div className='bg-white mt-6 rounded-lg p-6 border border-gray-100'>
+          <p className='text-lg font-semibold text-gray-700 mb-4'>📊 Consultation Mode Breakdown</p>
+          <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
+            <div className='bg-blue-50 p-3 rounded text-center'>
+              <p className='text-2xl font-bold text-blue-600'>{dashData.inClinicAppointments}</p>
+              <p className='text-sm text-gray-600'>🏥 In-Clinic</p>
+            </div>
+            <div className='bg-purple-50 p-3 rounded text-center'>
+              <p className='text-2xl font-bold text-purple-600'>{dashData.videoAppointments}</p>
+              <p className='text-sm text-gray-600'>📱 Video</p>
+            </div>
+            <div className='bg-orange-50 p-3 rounded text-center'>
+              <p className='text-2xl font-bold text-orange-600'>{dashData.sameDayAppointments}</p>
+              <p className='text-sm text-gray-600'>⚡ Same-Day</p>
+            </div>
+            <div className='bg-red-50 p-3 rounded text-center'>
+              <p className='text-2xl font-bold text-red-600'>{dashData.urgentAppointments}</p>
+              <p className='text-sm text-gray-600'>🔴 Urgent</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className='bg-white'>
         <div className='flex items-center gap-2.5 px-4 py-4 mt-10 rounded-t border'>
@@ -58,6 +90,12 @@ const DoctorDashboard = () => {
               <div className='flex-1 text-sm'>
                 <p className='text-gray-800 font-medium'>{item.userData.name}</p>
                 <p className='text-gray-600 '>Booking on {slotDateFormat(item.slotDate)}</p>
+                <p className='text-xs text-gray-500 mt-1'>
+                  {item.consultationType === 'video' && '📱 Video Call'}
+                  {item.consultationType === 'in-clinic' && '🏥 In-Clinic'}
+                  {item.consultationType === 'same-day' && '⚡ Same-Day'}
+                  {item.isUrgent && ' • Urgent'}
+                </p>
               </div>
               {item.cancelled
                 ? <p className='text-red-400 text-xs font-medium'>Cancelled</p>

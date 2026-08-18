@@ -16,12 +16,57 @@ const Appointment = () => {
     const [docSlots, setDocSlots] = useState([])
     const [slotIndex, setSlotIndex] = useState(0)
     const [slotTime, setSlotTime] = useState('')
+    const [consultationType, setConsultationType] = useState('in-clinic')
+    const [reviews, setReviews] = useState([])
+    const [reviewRating, setReviewRating] = useState(5)
+    const [reviewComment, setReviewComment] = useState('')
 
     const navigate = useNavigate()
 
     const fetchDocInfo = async () => {
         const docInfo = doctors.find((doc) => doc._id === docId)
         setDocInfo(docInfo)
+    }
+
+    const getDoctorReviews = async () => {
+        try {
+            const { data } = await axios.post(backendUrl + '/api/review/get-doctor-reviews', { docId })
+            if (data.success) {
+                setReviews(data.reviews || [])
+            }
+        } catch (error) {
+            console.log(error)
+        }
+    }
+
+    const submitReview = async () => {
+        if (!token) {
+            toast.warning('Login to leave a review')
+            return navigate('/login')
+        }
+
+        try {
+            const { data } = await axios.post(
+                backendUrl + '/api/user/add-review',
+                { userId: JSON.parse(localStorage.getItem('userData') || '{}')._id || '', docId, rating: reviewRating, comment: reviewComment },
+                { headers: { token } }
+            )
+
+            if (data.success) {
+                toast.success(data.message)
+                setReviewComment('')
+                setReviewRating(5)
+                await getDoctorReviews()
+                if (doctors.length > 0) {
+                    getDoctosData()
+                }
+            } else {
+                toast.error(data.message)
+            }
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+        }
     }
 
     const getAvailableSolts = async () => {
@@ -99,10 +144,11 @@ const Appointment = () => {
         let year = date.getFullYear()
 
         const slotDate = day + "_" + month + "_" + year
+        const isUrgent = consultationType === 'same-day' && slotIndex === 0
 
         try {
 
-            const { data } = await axios.post(backendUrl + '/api/user/book-appointment', { docId, slotDate, slotTime }, { headers: { token } })
+            const { data } = await axios.post(backendUrl + '/api/user/book-appointment', { docId, slotDate, slotTime, consultationType, isUrgent }, { headers: { token } })
             if (data.success) {
                 toast.success(data.message)
                 getDoctosData()
@@ -127,6 +173,7 @@ const Appointment = () => {
     useEffect(() => {
         if (docInfo) {
             getAvailableSolts()
+            getDoctorReviews()
         }
     }, [docInfo])
 
@@ -143,10 +190,49 @@ const Appointment = () => {
 
                     {/* ----- Doc Info : name, degree, experience ----- */}
 
-                    <p className='flex items-center gap-2 text-3xl font-medium text-gray-700'>{docInfo.name} <img className='w-5' src={assets.verified_icon} alt="" /></p>
+                    <div className='flex items-center justify-between mb-3'>
+                        <p className='flex items-center gap-2 text-3xl font-medium text-gray-700'>{docInfo.name} <img className='w-5' src={assets.verified_icon} alt="" /></p>
+                        {docInfo.isVerified && (
+                            <span className='bg-green-100 text-green-700 text-sm font-semibold px-3 py-1.5 rounded'>✓ JalnaCare Verified</span>
+                        )}
+                    </div>
                     <div className='flex items-center gap-2 mt-1 text-gray-600'>
                         <p>{docInfo.degree} - {docInfo.speciality}</p>
                         <button className='py-0.5 px-2 border text-xs rounded-full'>{docInfo.experience}</button>
+                    </div>
+
+                    {/* Clinic details if available */}
+                    {docInfo.clinicName && (
+                        <div className='mt-3 p-3 bg-blue-50 rounded text-sm text-gray-700'>
+                            <p className='font-semibold'>{docInfo.clinicName}</p>
+                            {docInfo.clinicAddress?.line1 && (
+                                <p className='text-xs text-gray-600'>{docInfo.clinicAddress.line1}{docInfo.clinicAddress.line2 ? ', ' + docInfo.clinicAddress.line2 : ''}</p>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Rating display */}
+                    {docInfo.avgRating > 0 && (
+                        <p className='text-sm text-gray-600 mt-2'>⭐ {docInfo.avgRating.toFixed(1)} rating ({docInfo.totalReviews} patients)</p>
+                    )}
+
+                    <div className='mt-4 rounded-xl border border-[#E1E7FF] bg-[#F7F9FF] p-4'>
+                        <p className='text-sm font-semibold text-[#26314c]'>Patient feedback</p>
+                        {reviews.length > 0 ? (
+                            <div className='mt-3 space-y-3'>
+                                {reviews.slice(0, 3).map((item, index) => (
+                                    <div key={index} className='rounded-lg bg-white p-3 shadow-sm'>
+                                        <div className='flex items-center justify-between'>
+                                            <p className='text-sm font-medium text-gray-700'>{item.userName || 'Patient'}</p>
+                                            <p className='text-xs text-[#5A5A5A]'>⭐ {item.rating}/5</p>
+                                        </div>
+                                        {item.comment && <p className='mt-2 text-xs text-gray-600'>{item.comment}</p>}
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className='mt-3 text-xs text-gray-500'>No patient reviews yet. Be the first to share feedback.</p>
+                        )}
                     </div>
 
                     {/* ----- Doc About ----- */}
@@ -161,7 +247,58 @@ const Appointment = () => {
 
             {/* Booking slots */}
             <div className='sm:ml-72 sm:pl-4 mt-8 font-medium text-[#565656]'>
-                <p >Booking slots</p>
+                
+                {/* Consultation Type Selection */}
+                <div className='mb-6 p-5 border border-[#E1E7FF] rounded-xl bg-[#F7F9FF]'>
+                    <p className='font-semibold text-[#1b443a] mb-3'>How would you like to consult?</p>
+                    <div className='grid grid-cols-1 sm:grid-cols-3 gap-3'>
+                        {docInfo.consultationModes && docInfo.consultationModes.includes('in-clinic') && (
+                            <button
+                                onClick={() => setConsultationType('in-clinic')}
+                                className={`p-4 rounded-lg border-2 text-center transition ${
+                                    consultationType === 'in-clinic'
+                                        ? 'border-[#1f7a6d] bg-[#edf7f5] text-[#1f7a6d]'
+                                        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                                }`}
+                            >
+                                <p className='text-lg font-semibold'>🏥</p>
+                                <p className='text-sm font-medium mt-1'>In-Clinic</p>
+                                <p className='text-xs text-gray-500 mt-1'>Visit in person</p>
+                            </button>
+                        )}
+                        {docInfo.consultationModes && docInfo.consultationModes.includes('video') && (
+                            <button
+                                onClick={() => setConsultationType('video')}
+                                className={`p-4 rounded-lg border-2 text-center transition ${
+                                    consultationType === 'video'
+                                        ? 'border-[#1f7a6d] bg-[#edf7f5] text-[#1f7a6d]'
+                                        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                                }`}
+                            >
+                                <p className='text-lg font-semibold'>📱</p>
+                                <p className='text-sm font-medium mt-1'>Video Call</p>
+                                <p className='text-xs text-gray-500 mt-1'>Consult from home</p>
+                            </button>
+                        )}
+                        {docInfo.sameDayAvailable && (
+                            <button
+                                onClick={() => setConsultationType('same-day')}
+                                className={`p-4 rounded-lg border-2 text-center transition relative ${
+                                    consultationType === 'same-day'
+                                        ? 'border-orange-500 bg-orange-50 text-orange-700'
+                                        : 'border-orange-200 bg-orange-50 text-gray-700 hover:border-orange-300'
+                                }`}
+                            >
+                                <p className='absolute top-2 right-2 text-xs font-bold text-orange-600 bg-orange-200 px-2 py-1 rounded'>URGENT</p>
+                                <p className='text-lg font-semibold'>⚡</p>
+                                <p className='text-sm font-medium mt-1'>Same-Day</p>
+                                <p className='text-xs text-gray-600 mt-1'>Fast appointment today</p>
+                            </button>
+                        )}
+                    </div>
+                </div>
+                
+                <p>Booking slots</p>
                 <div className='flex gap-3 items-center w-full overflow-x-scroll mt-4'>
                     {docSlots.length && docSlots.map((item, index) => (
                         <div onClick={() => setSlotIndex(index)} key={index} className={`text-center py-6 min-w-16 rounded-full cursor-pointer ${slotIndex === index ? 'bg-primary text-white' : 'border border-[#DDDDDD]'}`}>
@@ -179,6 +316,60 @@ const Appointment = () => {
 
                 <button onClick={bookAppointment} className='bg-primary text-white text-sm font-light px-20 py-3 rounded-full my-6'>Book an appointment</button>
             </div>
+
+            <div className='mt-8 rounded-2xl border border-[#DDE8FF] bg-[#F9FBFF] p-5'>
+                <p className='text-lg font-semibold text-[#1b443a]'>Share your experience</p>
+                <div className='mt-4 flex items-center gap-2'>
+                    {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                            key={star}
+                            type='button'
+                            onClick={() => setReviewRating(star)}
+                            className={`text-xl ${star <= reviewRating ? 'text-yellow-500' : 'text-gray-300'}`}
+                        >
+                            ★
+                        </button>
+                    ))}
+                </div>
+                <textarea
+                    value={reviewComment}
+                    onChange={(e) => setReviewComment(e.target.value)}
+                    rows={4}
+                    className='mt-4 w-full rounded-xl border border-gray-300 p-3 text-sm text-gray-700'
+                    placeholder='Tell other Jalna patients about your care experience.'
+                />
+                <button onClick={submitReview} className='mt-4 rounded-full bg-[#163f38] px-5 py-2 text-sm font-medium text-white'>Submit review</button>
+            </div>
+
+            {/* Reviews Section */}
+            {reviews.length > 0 && (
+                <div className='mt-8'>
+                    <h3 className='text-lg font-semibold text-gray-800 mb-4'>Patient Reviews ({reviews.length})</h3>
+                    <div className='space-y-4'>
+                        {reviews.slice(0, 5).map((review, index) => (
+                            <div key={index} className='border border-gray-200 rounded-lg p-4 bg-white'>
+                                <div className='flex items-start justify-between mb-2'>
+                                    <div>
+                                        <p className='font-medium text-gray-800'>{review.userName || 'Anonymous'}</p>
+                                        <div className='flex items-center gap-1 mt-1'>
+                                            {[1, 2, 3, 4, 5].map((star) => (
+                                                <span key={star} className={`text-sm ${star <= review.rating ? 'text-yellow-500' : 'text-gray-300'}`}>★</span>
+                                            ))}
+                                            <span className='text-sm text-gray-600 ml-2'>({review.rating}/5)</span>
+                                        </div>
+                                    </div>
+                                    <span className='text-xs text-gray-500'>
+                                        {new Date(review.createdAt).toLocaleDateString()}
+                                    </span>
+                                </div>
+                                {review.comment && (
+                                    <p className='text-gray-700 text-sm mt-2'>{review.comment}</p>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Listing Releated Doctors */}
             <RelatedDoctors speciality={docInfo.speciality} docId={docId} />

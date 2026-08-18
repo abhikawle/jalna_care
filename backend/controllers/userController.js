@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import validator from "validator";
+import crypto from "crypto";
 import userModel from "../models/userModel.js";
 import doctorModel from "../models/doctorModel.js";
 import appointmentModel from "../models/appointmentModel.js";
@@ -53,7 +54,11 @@ const registerUser = async (req, res) => {
 
         const newUser = new userModel(userData)
         const user = await newUser.save()
+        console.log('=== REGISTER: Signing token ===')
+        console.log('Secret:', process.env.JWT_SECRET)
+        console.log('Secret length:', process.env.JWT_SECRET ? process.env.JWT_SECRET.length : 0)
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET)
+        console.log('Token created:', token)
 
         res.json({ success: true, token })
 
@@ -77,7 +82,11 @@ const loginUser = async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password)
 
         if (isMatch) {
+            console.log('=== LOGIN: Signing token ===')
+            console.log('Secret:', process.env.JWT_SECRET)
+            console.log('Secret length:', process.env.JWT_SECRET ? process.env.JWT_SECRET.length : 0)
             const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET)
+            console.log('Token created:', token)
             res.json({ success: true, token })
         }
         else {
@@ -140,11 +149,21 @@ const bookAppointment = async (req, res) => {
 
     try {
 
-        const { userId, docId, slotDate, slotTime } = req.body
+        const { userId, docId, slotDate, slotTime, consultationType = 'in-clinic', isUrgent = false } = req.body
         const docData = await doctorModel.findById(docId).select("-password")
 
         if (!docData.available) {
             return res.json({ success: false, message: 'Doctor Not Available' })
+        }
+
+        // Validate consultation type matches provider capabilities
+        if (consultationType !== 'in-clinic' && (!docData.consultationModes || !docData.consultationModes.includes(consultationType))) {
+            return res.json({ success: false, message: 'This consultation type is not available' })
+        }
+
+        // Validate same-day is only booked if provider supports it
+        if (isUrgent && !docData.sameDayAvailable) {
+            return res.json({ success: false, message: 'Same-day appointments not available with this provider' })
         }
 
         let slots_booked = docData.slots_booked
@@ -174,6 +193,8 @@ const bookAppointment = async (req, res) => {
             amount: docData.fees,
             slotTime,
             slotDate,
+            consultationType,
+            isUrgent,
             date: Date.now()
         }
 
@@ -276,16 +297,38 @@ const paymentRazorpay = async (req, res) => {
 // API to verify payment of razorpay
 const verifyRazorpay = async (req, res) => {
     try {
-        const { razorpay_order_id } = req.body
+        if (!razorpayInstance) {
+            return res.json({ success: false, message: 'Razorpay is not configured' })
+        }
+
+        const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body
+
+        if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+            return res.json({ success: false, message: 'Invalid payment response' })
+        }
+
+        const generatedSignature = crypto
+            .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+            .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+            .digest('hex')
+
+        const isValid = crypto.timingSafeEqual(
+            Buffer.from(generatedSignature),
+            Buffer.from(razorpay_signature)
+        )
+
+        if (!isValid) {
+            return res.json({ success: false, message: 'Invalid signature' })
+        }
+
         const orderInfo = await razorpayInstance.orders.fetch(razorpay_order_id)
 
-        if (orderInfo.status === 'paid') {
+        if (orderInfo && orderInfo.status === 'paid') {
             await appointmentModel.findByIdAndUpdate(orderInfo.receipt, { payment: true })
-            res.json({ success: true, message: "Payment Successful" })
+            return res.json({ success: true, message: 'Payment Successful' })
         }
-        else {
-            res.json({ success: false, message: 'Payment Failed' })
-        }
+
+        return res.json({ success: false, message: 'Payment Failed' })
     } catch (error) {
         console.log(error)
         res.json({ success: false, message: error.message })
@@ -356,6 +399,95 @@ const verifyStripe = async (req, res) => {
 
 }
 
+// API to add patient review for a provider
+const addReview = async (req, res) => {
+    try {
+        const { userId, docId, rating, comment } = req.body
+
+        if (!userId || !docId || !rating) {
+            return res.json({ success: false, message: 'Missing review details' })
+        }
+
+        const cleanRating = Number(rating)
+        if (cleanRating < 1 || cleanRating > 5) {
+            return res.json({ success: false, message: 'Rating must be between 1 and 5' })
+        }
+
+        const appointmentExists = await appointmentModel.findOne({
+            userId,
+            docId,
+            $or: [{ payment: true }, { isCompleted: true }]
+        })
+
+        if (!appointmentExists) {
+            return res.json({ success: false, message: 'You can only review a doctor after booking with them.' })
+        }
+
+        const doctor = await doctorModel.findById(docId)
+        if (!doctor) {
+            return res.json({ success: false, message: 'Provider not found' })
+        }
+
+        const userData = await userModel.findById(userId).select('-password')
+        const reviewComment = comment ? comment.trim() : ''
+
+        const existingReviewIndex = (doctor.reviews || []).findIndex(item => item.userId === userId)
+        const newReview = {
+            userId,
+            userName: userData?.name || 'Patient',
+            rating: cleanRating,
+            comment: reviewComment,
+            createdAt: new Date()
+        }
+
+        const existingReviews = doctor.reviews || []
+        if (existingReviewIndex >= 0) {
+            existingReviews[existingReviewIndex] = newReview
+        } else {
+            existingReviews.push(newReview)
+        }
+
+        const totalReviews = existingReviews.length
+        const avgRating = totalReviews
+            ? Number((existingReviews.reduce((sum, item) => sum + Number(item.rating), 0) / totalReviews).toFixed(1))
+            : 0
+
+        doctor.reviews = existingReviews
+        doctor.avgRating = avgRating
+        doctor.totalReviews = totalReviews
+        await doctor.save()
+
+        res.json({ success: true, message: 'Review submitted successfully', avgRating, totalReviews, review: newReview })
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+// API to fetch doctor review list
+const getDoctorReviews = async (req, res) => {
+    try {
+        const { docId } = req.params
+        const doctor = await doctorModel.findById(docId).select('reviews avgRating totalReviews name speciality')
+
+        if (!doctor) {
+            return res.json({ success: false, message: 'Provider not found' })
+        }
+
+        res.json({
+            success: true,
+            reviews: doctor.reviews || [],
+            avgRating: doctor.avgRating || 0,
+            totalReviews: doctor.totalReviews || 0,
+            name: doctor.name,
+            speciality: doctor.speciality
+        })
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
 export {
     loginUser,
     registerUser,
@@ -367,5 +499,7 @@ export {
     paymentRazorpay,
     verifyRazorpay,
     paymentStripe,
-    verifyStripe
+    verifyStripe,
+    addReview,
+    getDoctorReviews
 }
