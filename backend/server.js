@@ -54,6 +54,24 @@ app.use("/api/doctor", doctorRouter)
 app.use("/api/slot", slotRouter)
 app.use("/api/review", reviewRouter)
 app.use("/api/moderation", moderationRouter)
+app.use(express.json())
+
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5176',
+  'http://localhost:4173',
+  'https://jalna-care-93ieupd64-abhikawles-projects.vercel.app'
+]
+
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'token', 'aToken']
+}))
+
+app.use("/api/user", userRouter)
 
 app.get("/", (req, res) => {
   res.send("API Working")
