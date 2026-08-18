@@ -7,7 +7,13 @@ export const AppContext = createContext()
 const AppContextProvider = (props) => {
 
     const currencySymbol = '₹'
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4002'
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4005'
+
+    const clearInvalidToken = () => {
+        localStorage.removeItem('token')
+        setToken('')
+        setUserData(false)
+    }
 
     const [doctors, setDoctors] = useState([])
     const [token, setToken] = useState(localStorage.getItem('token') ? localStorage.getItem('token') : '')
@@ -35,6 +41,10 @@ const AppContextProvider = (props) => {
     // Getting User Profile using API
     const loadUserProfileData = async () => {
 
+        if (!token) {
+            return
+        }
+
         try {
 
             const { data } = await axios.get(backendUrl + '/api/user/get-profile', { headers: { token } })
@@ -42,12 +52,20 @@ const AppContextProvider = (props) => {
             if (data.success) {
                 setUserData(data.userData)
             } else {
+                clearInvalidToken()
                 toast.error(data.message)
             }
 
         } catch (error) {
+            const message = error.response?.data?.message || error.message || 'Authentication failed'
             console.log(error)
-            toast.error(error.message)
+
+            if (message.toLowerCase().includes('invalid signature') || message.toLowerCase().includes('jwt') || message.toLowerCase().includes('not authorized')) {
+                clearInvalidToken()
+                return
+            }
+
+            toast.error(message)
         }
 
     }

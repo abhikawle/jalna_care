@@ -1,8 +1,16 @@
 import jwt from 'jsonwebtoken'
 
+const getTokenFromRequest = (req) => {
+    const authorization = req.headers.authorization || req.headers.Authorization
+    const bearerToken = authorization && authorization.startsWith('Bearer ') ? authorization.slice(7) : null
+
+    const rawToken = req.headers.token || req.headers.Token || req.headers['x-auth-token'] || bearerToken
+    return rawToken
+}
+
 // user authentication middleware
 const authUser = async (req, res, next) => {
-    const token = req.headers.token || req.headers.Token || req.headers['x-auth-token']
+    const token = getTokenFromRequest(req)
     if (!token) {
         return res.json({ success: false, message: 'Not Authorized Login Again' })
     }

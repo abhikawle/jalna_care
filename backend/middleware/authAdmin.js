@@ -1,9 +1,15 @@
 import jwt from "jsonwebtoken"
 
+const getAdminTokenFromRequest = (req) => {
+    const authorization = req.headers.authorization || req.headers.Authorization
+    const bearerToken = authorization && authorization.startsWith('Bearer ') ? authorization.slice(7) : null
+    return req.headers.atoken || req.headers.aToken || req.headers['a-token'] || bearerToken
+}
+
 // admin authentication middleware
 const authAdmin = async (req, res, next) => {
     try {
-        const atoken = req.headers.atoken || req.headers.aToken || req.headers['a-token']
+        const atoken = getAdminTokenFromRequest(req)
         if (!atoken) {
             return res.json({ success: false, message: 'Not Authorized Login Again' })
         }
