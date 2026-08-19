@@ -25,26 +25,37 @@ connectCloudinary()
 // middlewares
 app.use(express.json())
 
-// CORS configuration for development and production
 const parseAllowedOrigins = () => {
   const envOrigins = process.env.ALLOWED_ORIGINS
   if (envOrigins) {
     return envOrigins.split(',').map((origin) => origin.trim()).filter(Boolean)
   }
 
-  if (process.env.NODE_ENV === 'production') {
-    return [
-      'https://your-frontend-url.vercel.app',
-      'https://your-admin-url.vercel.app'
-    ]
-  }
-
-  return ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5176', 'http://localhost:4173']
+  return [
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:5176',
+    'http://localhost:4173',
+    'https://jalna-care-if96tq817-abhikawles-projects.vercel.app',
+    'https://jalna-care-1.onrender.com'
+  ]
 }
 
+const allowedOrigins = parseAllowedOrigins()
+
 app.use(cors({
-  origin: parseAllowedOrigins(),
-  credentials: true
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true)
+      return
+    }
+
+    console.log('Blocked CORS origin:', origin)
+    callback(new Error('Not allowed by CORS'))
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'token', 'aToken']
 }))
 
 // api endpoints
@@ -55,23 +66,6 @@ app.use("/api/slot", slotRouter)
 app.use("/api/review", reviewRouter)
 app.use("/api/moderation", moderationRouter)
 app.use(express.json())
-
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:5174',
-  'http://localhost:5176',
-  'http://localhost:4173',
-  'https://jalna-care-93ieupd64-abhikawles-projects.vercel.app'
-]
-
-app.use(cors({
-  origin: allowedOrigins,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'token', 'aToken']
-}))
-
-app.use("/api/user", userRouter)
 
 app.get("/", (req, res) => {
   res.send("API Working")
