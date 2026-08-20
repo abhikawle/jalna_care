@@ -3,6 +3,7 @@ import crypto from 'crypto'
 import jwt from 'jsonwebtoken'
 import userModel from '../models/userModel.js'
 import otpModel from '../models/otpModel.js'
+import nodemailer from 'nodemailer'
 
 const normalizePhone = (value = '') => {
     const digits = String(value).replace(/\D/g, '')
@@ -31,6 +32,14 @@ const twilioRequest = async (path, values) => {
 
 const sendVerifyOtp = (phone) => twilioRequest('/Verifications.json', { To: `+91${phone}`, Channel: 'sms' })
 const checkVerifyOtp = (phone, otp) => twilioRequest('/VerificationCheck.json', { To: `+91${phone}`, Code: otp })
+
+const sendEmailOtp = async (email, otp) => {
+    const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM } = process.env
+    if (!SMTP_HOST || !SMTP_USER || !SMTP_PASSWORD) return false
+    const transporter = nodemailer.createTransport({ host: SMTP_HOST, port: Number(SMTP_PORT || 465), secure: Number(SMTP_PORT || 465) === 465, auth: { user: SMTP_USER, pass: SMTP_PASSWORD } })
+    await transporter.sendMail({ from: SMTP_FROM || SMTP_USER, to: email, subject: 'JalnaCare verification code', text: `Your JalnaCare verification code is ${otp}. It expires in 5 minutes.` })
+    return true
+}
 
 const sendSms = async (phone, otp) => {
     const { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER } = process.env
@@ -67,17 +76,20 @@ const sendSms = async (phone, otp) => {
 
 const sendOtp = async (req, res) => {
     try {
+        const channel = req.body.channel || 'phone'
+        const email = String(req.body.email || '').trim().toLowerCase()
         const phone = normalizePhone(req.body.phone)
+        const identifier = channel === 'email' ? email : phone
         const purpose = req.body.purpose || 'login'
-        if (!isValidPhone(phone)) return res.status(400).json({ success: false, message: 'Enter a valid Indian mobile number.' })
+        if (channel === 'email' ? !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) : !isValidPhone(phone)) return res.status(400).json({ success: false, message: channel === 'email' ? 'Enter a valid email address.' : 'Enter a valid Indian mobile number.' })
         if (!['login', 'register', 'forgot-password'].includes(purpose)) return res.status(400).json({ success: false, message: 'Invalid OTP purpose.' })
 
-        const user = await userModel.findOne({ phone })
+        const user = await userModel.findOne(channel === 'email' ? { email } : { phone })
         if (purpose === 'login' && !user) return res.status(404).json({ success: false, message: 'No account found for this phone number.' })
         if (purpose === 'register' && user) return res.status(409).json({ success: false, message: 'This phone number is already registered.' })
         if (purpose === 'forgot-password' && !user) return res.status(404).json({ success: false, message: 'No account found for this phone number.' })
 
-        const useTwilioVerify = Boolean(process.env.TWILIO_VERIFY_SERVICE_SID)
+        const useTwilioVerify = channel === 'phone' && Boolean(process.env.TWILIO_VERIFY_SERVICE_SID)
         let delivered = false
         if (useTwilioVerify) {
             await sendVerifyOtp(phone)
@@ -85,13 +97,13 @@ const sendOtp = async (req, res) => {
         } else {
             const otp = String(crypto.randomInt(100000, 1000000))
             await otpModel.findOneAndUpdate(
-                { phone, purpose },
+                { identifier, purpose },
                 { otpHash: hashOtp(otp), expiresAt: new Date(Date.now() + 5 * 60 * 1000), attempts: 0 },
-                { upsert: true, new: true }
+                { upsert: true, new: true, setDefaultsOnInsert: true }
             )
-            delivered = await sendSms(phone, otp)
+            delivered = channel === 'email' ? await sendEmailOtp(email, otp) : await sendSms(phone, otp)
         }
-        if (!delivered && process.env.NODE_ENV === 'production') return res.status(503).json({ success: false, message: 'OTP service is not configured. Add Twilio Verify or Messaging credentials on Render.' })
+        if (!delivered && process.env.NODE_ENV === 'production') return res.status(503).json({ success: false, message: channel === 'email' ? 'Email OTP is not configured. Add SMTP_HOST, SMTP_USER, and SMTP_PASSWORD on Render.' : 'OTP service is not configured. Add Twilio Verify or Messaging credentials on Render.' })
         return res.json({ success: true, message: 'OTP sent successfully.' })
     } catch (error) {
         console.log(error)
@@ -101,18 +113,21 @@ const sendOtp = async (req, res) => {
 
 const verifyOtp = async (req, res) => {
     try {
+        const channel = req.body.channel || 'phone'
+        const email = String(req.body.email || '').trim().toLowerCase()
         const phone = normalizePhone(req.body.phone)
+        const identifier = channel === 'email' ? email : phone
         const purpose = req.body.purpose || 'login'
         const otp = String(req.body.otp || '')
-        if (process.env.TWILIO_VERIFY_SERVICE_SID) {
+        if (channel === 'phone' && process.env.TWILIO_VERIFY_SERVICE_SID) {
             const verification = await checkVerifyOtp(phone, otp)
             if (verification.status !== 'approved') return res.status(400).json({ success: false, message: 'Invalid or expired OTP.' })
         }
 
-        const record = process.env.TWILIO_VERIFY_SERVICE_SID ? null : await otpModel.findOne({ phone, purpose })
-        if (!process.env.TWILIO_VERIFY_SERVICE_SID && (!record || record.expiresAt < new Date())) return res.status(400).json({ success: false, message: 'OTP expired. Request a new code.' })
-        if (!process.env.TWILIO_VERIFY_SERVICE_SID && record.attempts >= 5) return res.status(429).json({ success: false, message: 'Too many attempts. Request a new code.' })
-        if (!process.env.TWILIO_VERIFY_SERVICE_SID && (!/^\d{6}$/.test(otp) || hashOtp(otp) !== record.otpHash)) {
+        const record = channel === 'phone' && process.env.TWILIO_VERIFY_SERVICE_SID ? null : await otpModel.findOne({ identifier, purpose })
+        if (!(channel === 'phone' && process.env.TWILIO_VERIFY_SERVICE_SID) && (!record || record.expiresAt < new Date())) return res.status(400).json({ success: false, message: 'OTP expired. Request a new code.' })
+        if (!(channel === 'phone' && process.env.TWILIO_VERIFY_SERVICE_SID) && record.attempts >= 5) return res.status(429).json({ success: false, message: 'Too many attempts. Request a new code.' })
+        if (!(channel === 'phone' && process.env.TWILIO_VERIFY_SERVICE_SID) && (!/^\d{6}$/.test(otp) || hashOtp(otp) !== record.otpHash)) {
             await otpModel.updateOne({ _id: record._id }, { $inc: { attempts: 1 } })
             return res.status(400).json({ success: false, message: 'Invalid OTP.' })
         }
@@ -122,13 +137,13 @@ const verifyOtp = async (req, res) => {
             const { name } = req.body
             if (!name?.trim()) return res.status(400).json({ success: false, message: 'Name is required.' })
             const password = await bcrypt.hash(crypto.randomBytes(24).toString('hex'), 10)
-            const user = await userModel.create({ name: name.trim(), phone, password })
+            const user = await userModel.create({ name: name.trim(), ...(channel === 'email' ? { email } : { phone }), password })
             return res.json({ success: true, token: jwt.sign({ id: user._id }, process.env.JWT_SECRET) })
         }
         if (purpose === 'forgot-password') {
             return res.json({ success: true, resetToken: jwt.sign({ phone, purpose: 'password-reset' }, process.env.JWT_SECRET, { expiresIn: '10m' }) })
         }
-        const user = await userModel.findOne({ phone })
+        const user = await userModel.findOne(channel === 'email' ? { email } : { phone })
         return res.json({ success: true, token: jwt.sign({ id: user._id }, process.env.JWT_SECRET) })
     } catch (error) {
         console.log(error)

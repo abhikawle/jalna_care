@@ -80,4 +80,5 @@
   ,"emailAddress": "Email address"
   ,"password": "Password"
   ,"createAccount": "Create account"
+  ,"emailOtp": "Use email OTP"
 }
