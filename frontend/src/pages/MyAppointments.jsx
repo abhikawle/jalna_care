@@ -195,6 +195,7 @@ const MyAppointments = () => {
                                     <span className='rounded-full bg-orange-100 px-2 py-1 text-xs font-medium text-orange-700'>Urgent</span>
                                 )}
                             </div>
+                            {!item.cancelled && <div className='mt-3 rounded border border-green-200 bg-green-50 p-3 text-sm text-green-800'><p className='font-semibold'>Contact Doctor</p><p>{item.docData.phoneNumber || 'Phone number unavailable'}</p><p>{item.docData.clinicAddress?.line1 || item.docData.address?.line1}</p><div className='mt-2 flex gap-2'><a href={`tel:${item.docData.phoneNumber}`} className='rounded bg-green-700 px-3 py-1 text-white'>Call Now</a>{item.docData.phoneNumber && <a href={`https://wa.me/${item.docData.phoneNumber.replace(/\D/g, '')}`} target='_blank' rel='noreferrer' className='rounded border border-green-700 px-3 py-1 text-green-700'>WhatsApp</a>}<a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.docData.clinicAddress?.line1 || item.docData.address?.line1 || '')}`} target='_blank' rel='noreferrer' className='rounded border border-green-700 px-3 py-1 text-green-700'>Directions</a></div></div>}
                             <p className='text-[#464646] font-medium mt-1'>Address:</p>
                             <p className=''>{item.docData.address.line1}</p>
                             <p className=''>{item.docData.address.line2}</p>

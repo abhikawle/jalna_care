@@ -118,14 +118,14 @@ const updateProfile = async (req, res) => {
 
     try {
 
-        const { userId, name, phone, address, dob, gender } = req.body
+        const { userId, name, phone, address, dob, gender, taluka, village, language, notificationsEnabled } = req.body
         const imageFile = req.file
 
         if (!name || !phone || !dob || !gender) {
             return res.json({ success: false, message: "Data Missing" })
         }
 
-        await userModel.findByIdAndUpdate(userId, { name, phone, address: JSON.parse(address), dob, gender })
+        await userModel.findByIdAndUpdate(userId, { name, phone, address: JSON.parse(address), dob, gender, taluka, village, language, notificationsEnabled })
 
         if (imageFile) {
 
@@ -149,7 +149,7 @@ const bookAppointment = async (req, res) => {
 
     try {
 
-        const { userId, docId, slotDate, slotTime, consultationType = 'in-clinic', isUrgent = false } = req.body
+        const { userId, docId, slotDate, slotTime, consultationType = 'in-clinic', isUrgent = false, patientAddress = null } = req.body
         const docData = await doctorModel.findById(docId).select("-password")
 
         if (!docData.available) {
@@ -159,6 +159,14 @@ const bookAppointment = async (req, res) => {
         // Validate consultation type matches provider capabilities
         if (consultationType !== 'in-clinic' && (!docData.consultationModes || !docData.consultationModes.includes(consultationType))) {
             return res.json({ success: false, message: 'This consultation type is not available' })
+        }
+
+        if (consultationType === 'home-visit' && !docData.homeVisitAvailable) {
+            return res.json({ success: false, message: 'Home visits are not available with this provider' })
+        }
+
+        if (consultationType === 'home-visit' && (!patientAddress || !patientAddress.line1 || !patientAddress.taluka || !patientAddress.village)) {
+            return res.json({ success: false, message: 'Patient address is required for a home visit' })
         }
 
         // Validate same-day is only booked if provider supports it
@@ -190,11 +198,13 @@ const bookAppointment = async (req, res) => {
             docId,
             userData,
             docData,
-            amount: docData.fees,
+            amount: consultationType === 'home-visit' ? docData.fees + (docData.homeVisitFee || 0) : docData.fees,
             slotTime,
             slotDate,
             consultationType,
             isUrgent,
+            patientAddress: consultationType === 'home-visit' ? patientAddress : null,
+            homeVisitFee: consultationType === 'home-visit' ? (docData.homeVisitFee || 0) : 0,
             date: Date.now()
         }
 
@@ -204,7 +214,7 @@ const bookAppointment = async (req, res) => {
         // save new slots data in docData
         await doctorModel.findByIdAndUpdate(docId, { slots_booked })
 
-        res.json({ success: true, message: 'Appointment Booked' })
+        res.json({ success: true, message: 'Appointment Booked', appointmentId: newAppointment._id })
 
     } catch (error) {
         console.log(error)

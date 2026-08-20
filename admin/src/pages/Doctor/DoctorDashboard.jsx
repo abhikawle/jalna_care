@@ -7,7 +7,7 @@ import { AppContext } from '../../context/AppContext'
 
 const DoctorDashboard = () => {
 
-  const { dToken, dashData, getDashData, cancelAppointment, completeAppointment } = useContext(DoctorContext)
+  const { dToken, dashData, getDashData, cancelAppointment, completeAppointment, profileData, getProfileData } = useContext(DoctorContext)
   const { slotDateFormat, currency } = useContext(AppContext)
 
 
@@ -15,12 +15,18 @@ const DoctorDashboard = () => {
 
     if (dToken) {
       getDashData()
+      getProfileData()
     }
 
   }, [dToken])
 
   return dashData && (
     <div className='m-5'>
+
+      {profileData?.verificationStatus === 'pending' && <div className='mb-5 rounded border border-yellow-200 bg-yellow-50 p-4 text-yellow-800'>Your application is under review.</div>}
+      {profileData?.verificationStatus === 'verified' && <div className='mb-5 rounded border border-green-200 bg-green-50 p-4 text-green-800'>Verified Provider</div>}
+      {profileData?.verificationStatus === 'rejected' && <div className='mb-5 rounded border border-red-200 bg-red-50 p-4 text-red-800'>Application rejected: {profileData.rejectionReason || 'Please contact JalnaCare support.'}</div>}
+      {profileData?.verificationStatus === 'suspended' && <div className='mb-5 rounded border border-gray-300 bg-gray-100 p-4 text-gray-700'>Account suspended.</div>}
 
       <div className='flex flex-wrap gap-3'>
         <div className='flex items-center gap-2 bg-white p-4 min-w-52 rounded border-2 border-gray-100 cursor-pointer hover:scale-105 transition-all'>
@@ -29,6 +35,12 @@ const DoctorDashboard = () => {
             <p className='text-xl font-semibold text-gray-600'>{currency} {dashData.earnings}</p>
             <p className='text-gray-400'>Earnings</p>
           </div>
+        </div>
+        <div className='flex items-center gap-2 bg-white p-4 min-w-52 rounded border-2 border-gray-100 cursor-pointer hover:scale-105 transition-all'>
+          <div className='text-2xl'>📅</div><div><p className='text-xl font-semibold text-gray-600'>{dashData.todaysPatients || 0}</p><p className='text-gray-400'>Today's Patients</p></div>
+        </div>
+        <div className='flex items-center gap-2 bg-white p-4 min-w-52 rounded border-2 border-gray-100 cursor-pointer hover:scale-105 transition-all'>
+          <div className='text-2xl'>🏠</div><div><p className='text-xl font-semibold text-gray-600'>{dashData.homeVisitAppointments || 0}</p><p className='text-gray-400'>Home Visits</p></div>
         </div>
         <div className='flex items-center gap-2 bg-white p-4 min-w-52 rounded border-2 border-gray-100 cursor-pointer hover:scale-105 transition-all'>
           <img className='w-14' src={assets.appointments_icon} alt="" />

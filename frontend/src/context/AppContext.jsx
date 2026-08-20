@@ -7,7 +7,9 @@ export const AppContext = createContext()
 const AppContextProvider = (props) => {
 
     const currencySymbol = '₹'
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4005'
+   const backendUrl = import.meta.env.VITE_BACKEND_URL
+
+console.log("BACKEND URL:", backendUrl)
 
     const clearInvalidToken = () => {
         localStorage.removeItem('token')

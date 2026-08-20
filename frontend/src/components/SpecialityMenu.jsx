@@ -1,6 +1,7 @@
 import React from 'react'
 import { specialityData } from '../assets/assets'
 import { Link } from 'react-router-dom'
+import { Activity } from 'lucide-react'
 
 const SpecialityMenu = () => {
     return (
@@ -10,7 +11,7 @@ const SpecialityMenu = () => {
             <div className='flex sm:justify-center gap-4 pt-5 w-full overflow-scroll '>
                 {specialityData.map((item, index) => (
                     <Link to={`/doctors/${item.speciality}`} onClick={() => scrollTo(0, 0)} className='flex flex-col items-center text-xs cursor-pointer flex-shrink-0 hover:translate-y-[-10px] transition-all duration-500' key={index}>
-                        <img className='w-16 sm:w-24 mb-2 ' src={item.image} alt="" />
+                        {item.image ? <img className='w-16 sm:w-24 mb-2 ' src={item.image} alt="" /> : <Activity className='mb-2 h-16 w-16 rounded-full bg-blue-50 p-4 text-blue-600 sm:h-24 sm:w-24' aria-hidden='true' />}
                         <p>{item.speciality}</p>
                     </Link>
                 ))}

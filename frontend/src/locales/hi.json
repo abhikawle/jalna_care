@@ -1,0 +1,79 @@
+{
+  "brand": "जलना केयर",
+  "home": "होम",
+  "doctors": "डॉक्टर",
+  "appointments": "अपॉइंटमेंट",
+  "profile": "प्रोफाइल",
+  "login": "लॉगिन",
+  "register": "रजिस्टर",
+  "registerDoctor": "डॉक्टर के रूप में रजिस्टर करें",
+  "bookAppointment": "अपॉइंटमेंट बुक करें",
+  "myAppointments": "मेरे अपॉइंटमेंट",
+  "homeVisit": "घर पर विजिट",
+  "emergency": "आपातकालीन संपर्क",
+  "searchDoctor": "डॉक्टर खोजें",
+  "selectTaluka": "तालुका चुनें",
+  "allTalukas": "सभी तालुका",
+  "findCare": "अपने पास इलाज खोजें",
+  "simpleHealthcare": "जलना जिले के लिए सरल स्वास्थ्य सेवा",
+  "bookAppointmentDescription": "विश्वसनीय डॉक्टर और समय चुनें।",
+  "myAppointmentsDescription": "अपने आने वाले और पुराने अपॉइंटमेंट देखें।",
+  "homeVisitDescription": "अपने गांव में घर पर इलाज पाएं।",
+  "emergencyDescription": "आपातकालीन सहायता जल्दी पाएं।",
+  "language": "भाषा",
+  "english": "अंग्रेजी",
+  "hindi": "हिन्दी",
+  "marathi": "मराठी",
+  "logout": "लॉगआउट",
+  "search": "खोजें",
+  "available": "उपलब्ध",
+  "verified": "सत्यापित",
+  "inClinic": "क्लिनिक में",
+  "video": "वीडियो",
+  "confirm": "पुष्टि करें",
+  "cancel": "रद्द करें",
+  "next": "आगे",
+  "back": "पीछे",
+  "save": "सहेजें",
+  "noDoctors": "कोई डॉक्टर नहीं मिला",
+  "contactAfterBooking": "डॉक्टर से संपर्क करने के लिए अपॉइंटमेंट बुक करें",
+  "welcome": "स्वागत है",
+  "careLauncherTitle": "आज हम आपकी कैसे मदद कर सकते हैं?",
+  "careLauncherSubtitle": "जलना में घर के पास भरोसेमंद इलाज खोजें।",
+  "location": "स्थान",
+  "chooseTaluka": "अपना तालुका चुनें",
+  "homeVisitToggle": "घर पर विजिट वाले डॉक्टर दिखाएं",
+  "emergencyCall": "आपातकाल में 108 पर कॉल करें",
+  "emergencyCallAction": "आपातकालीन सहायता कॉल करें",
+  "quickActions": "त्वरित सेवाएं",
+  "viewAllDoctors": "सभी डॉक्टर देखें",
+  "careForYourVillage": "आपके गांव के लिए स्वास्थ्य सेवा"
+  ,"phoneNumber": "मोबाइल नंबर"
+  ,"fullName": "पूरा नाम"
+  ,"enterOtp": "6 अंकों का OTP डालें"
+  ,"sendOtp": "OTP भेजें"
+  ,"verifyOtp": "OTP सत्यापित करें"
+  ,"forgotPassword": "पासवर्ड भूल गए?"
+  ,"resetPassword": "पासवर्ड बदलें"
+  ,"newPassword": "नया पासवर्ड"
+  ,"continueWithPhone": "फोन से जारी रखें"
+  ,"newPatient": "नए मरीज? रजिस्टर करें"
+  ,"existingPatient": "पहले से रजिस्टर हैं? लॉगिन करें"
+  ,"otpSent": "आपके मोबाइल नंबर पर OTP भेजा गया है"
+  ,"changeNumber": "नंबर बदलें"
+  ,"backToLogin": "लॉगिन पर वापस जाएं"
+  ,"passwordHint": "कम से कम 8 अक्षर इस्तेमाल करें"
+  ,"notificationsEnabled": "अपॉइंटमेंट सूचनाएं"
+  ,"chooseSpeciality": "विशेषज्ञता चुनें"
+  ,"chooseDoctor": "डॉक्टर चुनें"
+  ,"chooseDateTime": "तारीख और समय चुनें"
+  ,"reviewBooking": "अपॉइंटमेंट देखें"
+  ,"appointmentConfirmed": "अपॉइंटमेंट की पुष्टि हो गई"
+  ,"appointmentId": "अपॉइंटमेंट आईडी"
+  ,"date": "तारीख"
+  ,"time": "समय"
+  ,"consultationType": "परामर्श का प्रकार"
+  ,"callDoctor": "डॉक्टर को कॉल करें"
+  ,"directions": "दिशाएं"
+  ,"step": "चरण"
+}

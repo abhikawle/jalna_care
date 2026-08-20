@@ -1,7 +1,118 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
+import validator from "validator";
+import { v2 as cloudinary } from "cloudinary";
 import doctorModel from "../models/doctorModel.js";
 import appointmentModel from "../models/appointmentModel.js";
+
+const jalnaVillages = {
+    Jalna: ['Jalna', 'Kharpudi', 'Mhaismal', 'Rajur', 'Wadigodri'],
+    Ambad: ['Ambad', 'Dhangar Pimpalgaon', 'Gondi', 'Sukhapuri', 'Yeota'],
+    Bhokardan: ['Bhokardan', 'Dhanora', 'Hasnabad', 'Jamkhed', 'Rajur'],
+    Badnapur: ['Badnapur', 'Chikhli', 'Dabhadi', 'Kadegaon', 'Wadgaon'],
+    Ghansawangi: ['Ghansawangi', 'Ambadgaon', 'Jamb Samarth', 'Kumbhar Pimpalgaon', 'Ranjani'],
+    Jafrabad: ['Jafrabad', 'Ashti', 'Bhendala', 'Kumbhari', 'Tembhurni'],
+    Mantha: ['Mantha', 'Kansawangi', 'Khatkheda', 'Pangri', 'Tandulwadi'],
+    Partur: ['Partur', 'Ashti', 'Dhamangaon', 'Mandwa', 'Sultanwadi']
+}
+
+const parseObject = (value, fieldName) => {
+    if (typeof value === 'object' && value !== null) return value
+    try {
+        return JSON.parse(value)
+    } catch {
+        const error = new Error(`Invalid ${fieldName}`)
+        error.statusCode = 400
+        throw error
+    }
+}
+
+// Public provider application. Verification fields are deliberately not read from the request.
+const registerDoctor = async (req, res) => {
+    try {
+        const { name, email, password, confirmPassword, phoneNumber, speciality, degree, experience, about, fees, clinicName, providerType, sameDayAvailable, homeVisitAvailable, homeVisitFee, serviceRadius, taluka, village } = req.body
+        const imageFile = req.file
+
+        if (!name || !email || !password || !speciality || !degree || !experience || !about || !fees || !clinicName || !phoneNumber || !req.body.address || !imageFile) {
+            return res.status(400).json({ success: false, message: 'Please complete all required registration fields.' })
+        }
+        if (!validator.isEmail(email.trim())) {
+            return res.status(400).json({ success: false, message: 'Please enter a valid email.' })
+        }
+        if (password.length < 8) {
+            return res.status(400).json({ success: false, message: 'Password must be at least 8 characters.' })
+        }
+        if (confirmPassword !== undefined && password !== confirmPassword) {
+            return res.status(400).json({ success: false, message: 'Passwords do not match.' })
+        }
+        if (!validator.isMobilePhone(phoneNumber.trim(), 'en-IN')) {
+            return res.status(400).json({ success: false, message: 'Please enter a valid phone number.' })
+        }
+        if (!Number.isFinite(Number(fees)) || Number(fees) <= 0) {
+            return res.status(400).json({ success: false, message: 'Consultation fees must be a valid amount.' })
+        }
+        if (!/^\d+(?:\s+years?)?$/i.test(String(experience).trim())) {
+            return res.status(400).json({ success: false, message: 'Experience must be a valid number of years.' })
+        }
+        if (!['image/jpeg', 'image/png', 'image/webp'].includes(imageFile.mimetype) || imageFile.size > 5 * 1024 * 1024) {
+            return res.status(400).json({ success: false, message: 'Profile image must be JPG, PNG, or WebP and under 5 MB.' })
+        }
+
+        const existingDoctor = await doctorModel.findOne({ email: email.trim().toLowerCase() })
+        if (existingDoctor) {
+            return res.status(409).json({ success: false, message: 'An account with this email already exists.' })
+        }
+
+        const address = parseObject(req.body.address, 'address')
+        const clinicAddress = req.body.clinicAddress ? parseObject(req.body.clinicAddress, 'clinic address') : address
+        const allowedModes = ['in-clinic', 'video', 'home-visit', 'same-day']
+        const consultationModes = (Array.isArray(req.body.consultationModes) ? req.body.consultationModes : [req.body.consultationModes])
+            .filter((mode) => allowedModes.includes(mode))
+        if (!address.line1 || address.state !== 'Maharashtra' || address.city !== 'Jalna' || !jalnaVillages[taluka]?.includes(village) || !address.zipcode || !consultationModes.length) {
+            return res.status(400).json({ success: false, message: 'Please provide a complete address and consultation mode.' })
+        }
+
+        const imageUpload = await cloudinary.uploader.upload(imageFile.path, { resource_type: 'image' })
+        const hashedPassword = await bcrypt.hash(password, 10)
+        const newDoctor = new doctorModel({
+            name: name.trim(),
+            email: email.trim().toLowerCase(),
+            password: hashedPassword,
+            image: imageUpload.secure_url,
+            speciality: speciality.trim(),
+            degree: degree.trim(),
+            experience: String(experience).trim(),
+            about: about.trim(),
+            fees: Number(fees),
+            address,
+            clinicName: clinicName.trim(),
+            clinicAddress,
+            phoneNumber: phoneNumber.trim(),
+            providerType: ['individual', 'clinic'].includes(providerType) ? providerType : 'individual',
+            consultationModes,
+            homeVisitAvailable: homeVisitAvailable === true || homeVisitAvailable === 'true',
+            homeVisitFee: Number(homeVisitFee) || 0,
+            serviceRadius: Number(serviceRadius) || 0,
+            sameDayAvailable: sameDayAvailable === true || sameDayAvailable === 'true',
+            verificationStatus: 'pending',
+            isVerified: false,
+            verificationDate: null,
+            rejectionReason: '',
+            available: true,
+            slots_booked: {},
+            reviews: [],
+            avgRating: 0,
+            totalReviews: 0,
+            date: Date.now()
+        })
+        await newDoctor.save()
+
+        return res.status(201).json({ success: true, message: 'Doctor registration submitted successfully. Waiting for admin verification.' })
+    } catch (error) {
+        console.log(error)
+        return res.status(error.statusCode || 500).json({ success: false, message: error.statusCode ? error.message : 'Unable to submit doctor registration.' })
+    }
+}
 
 // API for doctor Login 
 const loginDoctor = async (req, res) => {
@@ -92,7 +203,7 @@ const appointmentComplete = async (req, res) => {
 const doctorList = async (req, res) => {
     try {
 
-        const doctors = await doctorModel.find({}).select(['-password', '-email'])
+        const doctors = await doctorModel.find({ verificationStatus: 'verified', isVerified: true }).select(['-password', '-email', '-phoneNumber', '-clinicAddress', '-address.line1', '-address.line2', '-address.state', '-address.zipcode'])
         res.json({ success: true, doctors })
 
     } catch (error) {
@@ -179,6 +290,10 @@ const doctorDashboard = async (req, res) => {
         let videoAppointments = 0
         let inClinicAppointments = 0
         let urgentAppointments = 0
+        let homeVisitAppointments = 0
+        const today = new Date()
+        const todaySlotDate = `${today.getDate()}_${today.getMonth() + 1}_${today.getFullYear()}`
+        const todaysPatients = new Set()
 
         appointments.map((item) => {
             if (item.isCompleted || item.payment) {
@@ -187,6 +302,8 @@ const doctorDashboard = async (req, res) => {
             if (item.isUrgent) {
                 urgentAppointments++
             }
+            if (item.consultationType === 'home-visit') homeVisitAppointments++
+            if (item.slotDate === todaySlotDate && !item.cancelled) todaysPatients.add(item.userId)
             if (item.consultationType === 'same-day') {
                 sameDayAppointments++
             } else if (item.consultationType === 'video') {
@@ -215,6 +332,8 @@ const doctorDashboard = async (req, res) => {
             videoAppointments,
             inClinicAppointments,
             urgentAppointments,
+            homeVisitAppointments,
+            todaysPatients: todaysPatients.size,
             consultationModes: docData.consultationModes || ['in-clinic'],
             sameDayAvailable: docData.sameDayAvailable || false,
             avgRating: docData.avgRating || 0
@@ -234,7 +353,7 @@ const searchProviders = async (req, res) => {
 
         const { query, speciality, verified, sortBy, page = 1, limit = 10 } = req.body
 
-        let filter = { verificationStatus: 'verified' } // Only show verified providers by default
+        let filter = { verificationStatus: 'verified', isVerified: true } // Only show verified providers by default
 
         // Search by name or clinic name
         if (query) {
@@ -251,9 +370,9 @@ const searchProviders = async (req, res) => {
         }
 
         // Filter by verification if explicitly requested
-        if (verified !== undefined) {
-            filter.isVerified = verified
-        }
+        filter.isVerified = true
+
+        if (req.body.homeVisitOnly) filter.homeVisitAvailable = true
 
         // Determine sort order
         let sortObj = { avgRating: -1, date: -1 } // Default: by rating, then newest
@@ -267,7 +386,7 @@ const searchProviders = async (req, res) => {
 
         const skip = (page - 1) * limit
         const providers = await doctorModel.find(filter)
-            .select('-password -email')
+            .select('-password -email -phoneNumber -clinicAddress -address.line1 -address.line2 -address.state -address.zipcode')
             .sort(sortObj)
             .skip(skip)
             .limit(limit)
@@ -292,6 +411,7 @@ const searchProviders = async (req, res) => {
 }
 
 export {
+    registerDoctor,
     loginDoctor,
     appointmentsDoctor,
     appointmentCancel,

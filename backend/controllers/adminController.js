@@ -36,6 +36,8 @@ const appointmentsAdmin = async (req, res) => {
     try {
 
         const appointments = await appointmentModel.find({})
+        const today = new Date()
+        const todaySlotDate = `${today.getDate()}_${today.getMonth() + 1}_${today.getFullYear()}`
         res.json({ success: true, appointments })
 
     } catch (error) {
@@ -148,6 +150,10 @@ const adminDashboard = async (req, res) => {
             doctors: doctors.length,
             appointments: appointments.length,
             patients: users.length,
+            verifiedDoctors: doctors.filter((doctor) => doctor.verificationStatus === 'verified' && doctor.isVerified).length,
+            pendingDoctors: doctors.filter((doctor) => doctor.verificationStatus === 'pending').length,
+            homeVisitProviders: doctors.filter((doctor) => doctor.homeVisitAvailable).length,
+            todaysAppointments: appointments.filter((appointment) => appointment.slotDate === todaySlotDate && !appointment.cancelled).length,
             latestAppointments: appointments.reverse()
         }
 
@@ -173,18 +179,15 @@ const updateProviderVerification = async (req, res) => {
         if (!validStatuses.includes(verificationStatus)) {
             return res.json({ success: false, message: "Invalid verification status" })
         }
+        if (verificationStatus === 'rejected' && !rejectionReason?.trim()) {
+            return res.json({ success: false, message: "A rejection reason is required" })
+        }
 
         const updateData = {
             verificationStatus,
             isVerified: verificationStatus === 'verified' ? true : false,
-        }
-
-        if (verificationStatus === 'verified') {
-            updateData.verificationDate = new Date()
-        }
-
-        if (verificationStatus === 'rejected' && rejectionReason) {
-            updateData.rejectionReason = rejectionReason
+            verificationDate: verificationStatus === 'verified' ? new Date() : null,
+            rejectionReason: verificationStatus === 'rejected' ? (rejectionReason || '') : '',
         }
 
         await doctorModel.findByIdAndUpdate(docId, updateData)

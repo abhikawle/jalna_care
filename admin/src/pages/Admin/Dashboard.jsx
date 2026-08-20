@@ -25,6 +25,10 @@ const Dashboard = () => {
             <p className='text-gray-400'>Doctors</p>
           </div>
         </div>
+        <div className='flex items-center gap-2 bg-white p-4 min-w-52 rounded border-2 border-gray-100'><div className='text-2xl'>✓</div><div><p className='text-xl font-semibold text-gray-600'>{dashData.verifiedDoctors || 0}</p><p className='text-gray-400'>Verified Doctors</p></div></div>
+        <div className='flex items-center gap-2 bg-white p-4 min-w-52 rounded border-2 border-gray-100'><div className='text-2xl'>⌛</div><div><p className='text-xl font-semibold text-gray-600'>{dashData.pendingDoctors || 0}</p><p className='text-gray-400'>Pending Doctors</p></div></div>
+        <div className='flex items-center gap-2 bg-white p-4 min-w-52 rounded border-2 border-gray-100'><div className='text-2xl'>🏠</div><div><p className='text-xl font-semibold text-gray-600'>{dashData.homeVisitProviders || 0}</p><p className='text-gray-400'>Home Visit Providers</p></div></div>
+        <div className='flex items-center gap-2 bg-white p-4 min-w-52 rounded border-2 border-gray-100'><div className='text-2xl'>📅</div><div><p className='text-xl font-semibold text-gray-600'>{dashData.todaysAppointments || 0}</p><p className='text-gray-400'>Today's Appointments</p></div></div>
         <div className='flex items-center gap-2 bg-white p-4 min-w-52 rounded border-2 border-gray-100 cursor-pointer hover:scale-105 transition-all'>
           <img className='w-14' src={assets.appointments_icon} alt="" />
           <div>

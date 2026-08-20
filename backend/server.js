@@ -9,6 +9,7 @@ import adminRouter from "./routes/adminRoute.js"
 import slotRouter from "./routes/slotRoute.js"
 import reviewRouter from "./routes/reviewRoute.js"
 import moderationRouter from "./routes/moderationRoute.js"
+import authRouter from "./routes/authRoute.js"
 
 // app config
 const app = express()
@@ -36,6 +37,7 @@ const parseAllowedOrigins = () => {
     'http://localhost:5174',
     'http://localhost:5176',
     'http://localhost:4173',
+    'https://jalna-care.vercel.app',
     'https://jalna-care-if96tq817-abhikawles-projects.vercel.app',
     'https://jalna-care-1.onrender.com'
   ]
@@ -60,6 +62,7 @@ app.use(cors({
 
 // api endpoints
 app.use("/api/user", userRouter)
+app.use("/api/auth", authRouter)
 app.use("/api/admin", adminRouter)
 app.use("/api/doctor", doctorRouter)
 app.use("/api/slot", slotRouter)

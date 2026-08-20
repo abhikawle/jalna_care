@@ -82,6 +82,18 @@ const DoctorProfile = () => {
                         <button className='py-0.5 px-2 border text-xs rounded-full'>{profileData.experience}</button>
                     </div>
 
+                    <div className={`mt-4 rounded p-3 text-sm ${
+                        profileData.verificationStatus === 'verified' ? 'bg-green-50 text-green-700' :
+                        profileData.verificationStatus === 'rejected' ? 'bg-red-50 text-red-700' :
+                        profileData.verificationStatus === 'suspended' ? 'bg-yellow-50 text-yellow-700' :
+                        'bg-blue-50 text-blue-700'
+                    }`}>
+                        {profileData.verificationStatus === 'verified' && '✓ Verified Provider'}
+                        {profileData.verificationStatus === 'rejected' && `Your provider application was rejected.${profileData.rejectionReason ? ` Reason: ${profileData.rejectionReason}` : ''}`}
+                        {profileData.verificationStatus === 'suspended' && 'Your provider account is currently suspended.'}
+                        {(!profileData.verificationStatus || profileData.verificationStatus === 'pending') && 'Your provider application is under review.'}
+                    </div>
+
                     {/* ----- Doc About ----- */}
                     <div>
                         <p className='flex items-center gap-1 text-sm font-medium text-[#262626] mt-3'>About :</p>

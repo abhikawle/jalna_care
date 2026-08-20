@@ -2,6 +2,8 @@ import React, { useContext, useState } from 'react'
 import { assets } from '../assets/assets'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { AppContext } from '../context/AppContext'
+import LanguageSwitcher from './LanguageSwitcher'
+import { useTranslation } from 'react-i18next'
 
 const Navbar = () => {
 
@@ -9,6 +11,7 @@ const Navbar = () => {
 
   const [showMenu, setShowMenu] = useState(false)
   const { token, setToken, userData } = useContext(AppContext)
+  const { t } = useTranslation()
 
   const logout = () => {
     localStorage.removeItem('token')
@@ -44,6 +47,8 @@ const Navbar = () => {
       </ul>
 
       <div className='flex items-center gap-4 '>
+        <LanguageSwitcher />
+        <button onClick={() => navigate('/register-doctor')} className='text-primary font-medium hidden sm:block'>{t('registerDoctor')}</button>
         {
           token && userData
             ? <div className='flex items-center gap-2 cursor-pointer group relative'>
@@ -57,7 +62,7 @@ const Navbar = () => {
                 </div>
               </div>
             </div>
-            : <button onClick={() => navigate('/login')} className='bg-primary text-white px-8 py-3 rounded-full font-light hidden md:block'>Create account</button>
+            : <button onClick={() => navigate('/login')} className='bg-primary text-white px-8 py-3 rounded-full font-light hidden md:block'>{t('register')}</button>
         }
         <img onClick={() => setShowMenu(true)} className='w-6 md:hidden' src={assets.menu_icon} alt="" />
 
@@ -72,6 +77,7 @@ const Navbar = () => {
             <NavLink onClick={() => setShowMenu(false)} to='/doctors' ><p className='px-4 py-2 rounded full inline-block'>ALL DOCTORS</p></NavLink>
             <NavLink onClick={() => setShowMenu(false)} to='/about' ><p className='px-4 py-2 rounded full inline-block'>ABOUT</p></NavLink>
             <NavLink onClick={() => setShowMenu(false)} to='/contact' ><p className='px-4 py-2 rounded full inline-block'>CONTACT</p></NavLink>
+            <NavLink onClick={() => setShowMenu(false)} to='/register-doctor' ><p className='px-4 py-2 rounded full inline-block text-primary'>REGISTER AS DOCTOR</p></NavLink>
           </ul>
         </div>
       </div>

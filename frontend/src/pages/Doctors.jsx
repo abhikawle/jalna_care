@@ -3,18 +3,21 @@ import { AppContext } from '../context/AppContext'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
 const normalizeSpeciality = (value = '') => value.toLowerCase().replace(/\s+/g, ' ').trim();
+const specialityOptions = ['Physiotherapist', 'General physician', 'Gynecologist', 'Dermatologist', 'Pediatricians', 'Neurologist', 'Gastroenterologist']
 
 const Doctors = () => {
 
   const { speciality } = useParams()
   const [searchParams] = useSearchParams()
   const careNeed = searchParams.get('care')
+  const queryParam = searchParams.get('query') || ''
+  const talukaParam = searchParams.get('taluka') || 'All'
 
   const [filterDoc, setFilterDoc] = useState([])
   const [showFilter, setShowFilter] = useState(false)
   const [sortBy, setSortBy] = useState('rating')
-  const [searchTerm, setSearchTerm] = useState('')
-  const [selectedArea, setSelectedArea] = useState('All')
+  const [searchTerm, setSearchTerm] = useState(queryParam)
+  const [selectedArea, setSelectedArea] = useState(talukaParam)
   const [consultationFilter, setConsultationFilter] = useState('all')
   const navigate = useNavigate();
 
@@ -22,7 +25,7 @@ const Doctors = () => {
 
   const areaOptions = Array.from(new Set(
     doctors
-      .map((doc) => doc.clinicAddress?.line1 || doc.address?.line1 || '')
+      .map((doc) => doc.address?.taluka || doc.address?.village || '')
       .filter(Boolean)
   )).sort()
 
@@ -47,7 +50,7 @@ const Doctors = () => {
     }
     
     if (selectedSpeciality) {
-      filtered = doctors.filter(doc => normalizeSpeciality(doc.speciality) === selectedSpeciality)
+      filtered = doctors.filter(doc => normalizeSpeciality(doc.speciality) === selectedSpeciality || (selectedSpeciality === 'general physician' && normalizeSpeciality(doc.speciality) === 'general practitioner'))
     } else {
       filtered = doctors
     }
@@ -69,10 +72,7 @@ const Doctors = () => {
     }
 
     if (selectedArea !== 'All') {
-      filtered = filtered.filter((doc) => {
-        const area = doc.clinicAddress?.line1 || doc.address?.line1 || ''
-        return area.toLowerCase() === selectedArea.toLowerCase()
-      })
+      filtered = filtered.filter((doc) => (doc.address?.taluka || '').toLowerCase() === selectedArea.toLowerCase())
     }
 
     if (consultationFilter === 'same-day') {
@@ -81,6 +81,18 @@ const Doctors = () => {
 
     if (consultationFilter === 'video') {
       filtered = filtered.filter((doc) => (doc.consultationModes || []).includes('video'))
+    }
+
+    if (consultationFilter === 'in-clinic') {
+      filtered = filtered.filter((doc) => (doc.consultationModes || []).includes('in-clinic'))
+    }
+
+    if (consultationFilter === 'home-visit') {
+      filtered = filtered.filter((doc) => doc.homeVisitAvailable === true)
+    }
+
+    if (careNeed === 'home-visit') {
+      filtered = filtered.filter((doc) => doc.homeVisitAvailable === true)
     }
 
     // Apply sorting
@@ -103,7 +115,7 @@ const Doctors = () => {
 
   useEffect(() => {
     applyFilter()
-  }, [doctors, speciality, careNeed, sortBy, searchTerm, selectedArea, consultationFilter])
+  }, [doctors, speciality, careNeed, queryParam, talukaParam, sortBy, searchTerm, selectedArea, consultationFilter])
 
   return (
     <div>
@@ -124,12 +136,7 @@ const Doctors = () => {
 
           <div>
             <p className='font-semibold mb-2 text-gray-700'>Speciality</p>
-            <p onClick={() => speciality === 'General physician' ? navigate('/doctors') : navigate('/doctors/General physician')} className={`w-[94vw] sm:w-auto pl-3 py-1.5 pr-16 border border-gray-300 rounded transition-all cursor-pointer ${speciality === 'General physician' ? 'bg-[#E2E5FF] text-black ' : ''}`}>General physician</p>
-            <p onClick={() => speciality === 'Gynecologist' ? navigate('/doctors') : navigate('/doctors/Gynecologist')} className={`w-[94vw] sm:w-auto pl-3 py-1.5 pr-16 border border-gray-300 rounded transition-all cursor-pointer ${speciality === 'Gynecologist' ? 'bg-[#E2E5FF] text-black ' : ''}`}>Gynecologist</p>
-            <p onClick={() => speciality === 'Dermatologist' ? navigate('/doctors') : navigate('/doctors/Dermatologist')} className={`w-[94vw] sm:w-auto pl-3 py-1.5 pr-16 border border-gray-300 rounded transition-all cursor-pointer ${speciality === 'Dermatologist' ? 'bg-[#E2E5FF] text-black ' : ''}`}>Dermatologist</p>
-            <p onClick={() => speciality === 'Pediatricians' ? navigate('/doctors') : navigate('/doctors/Pediatricians')} className={`w-[94vw] sm:w-auto pl-3 py-1.5 pr-16 border border-gray-300 rounded transition-all cursor-pointer ${speciality === 'Pediatricians' ? 'bg-[#E2E5FF] text-black ' : ''}`}>Pediatricians</p>
-            <p onClick={() => speciality === 'Neurologist' ? navigate('/doctors') : navigate('/doctors/Neurologist')} className={`w-[94vw] sm:w-auto pl-3 py-1.5 pr-16 border border-gray-300 rounded transition-all cursor-pointer ${speciality === 'Neurologist' ? 'bg-[#E2E5FF] text-black ' : ''}`}>Neurologist</p>
-            <p onClick={() => speciality === 'Gastroenterologist' ? navigate('/doctors') : navigate('/doctors/Gastroenterologist')} className={`w-[94vw] sm:w-auto pl-3 py-1.5 pr-16 border border-gray-300 rounded transition-all cursor-pointer ${speciality === 'Gastroenterologist' ? 'bg-[#E2E5FF] text-black ' : ''}`}>Gastroenterologist</p>
+            {specialityOptions.map((option) => <p key={option} onClick={() => normalizeSpeciality(speciality) === normalizeSpeciality(option) ? navigate('/doctors') : navigate(`/doctors/${encodeURIComponent(option)}`)} className={`w-[94vw] sm:w-auto pl-3 py-1.5 pr-16 border border-gray-300 rounded transition-all cursor-pointer ${normalizeSpeciality(speciality) === normalizeSpeciality(option) ? 'bg-[#E2E5FF] text-black ' : ''}`}>{option}</p>)}
           </div>
 
           <div>
@@ -146,8 +153,9 @@ const Doctors = () => {
             <p className='font-semibold mb-2 text-gray-700'>Consultation</p>
             <select value={consultationFilter} onChange={(e) => setConsultationFilter(e.target.value)} className='border border-gray-300 rounded px-3 py-2 w-[94vw] sm:w-auto'>
               <option value='all'>All consultations</option>
-              <option value='same-day'>Same-day visits</option>
+              <option value='in-clinic'>In Clinic</option>
               <option value='video'>Video consults</option>
+              <option value='home-visit'>Home visits</option>
             </select>
           </div>
 

@@ -3,6 +3,9 @@ import { AppContext } from '../context/AppContext'
 import axios from 'axios'
 import { toast } from 'react-toastify'
 import { assets } from '../assets/assets'
+import LanguageSwitcher from '../components/LanguageSwitcher'
+import { JALNA_TALUKA_OPTIONS, JALNA_TALUKAS } from '../constants/jalnaLocations'
+import { useTranslation } from 'react-i18next'
 
 const MyProfile = () => {
 
@@ -11,6 +14,7 @@ const MyProfile = () => {
     const [image, setImage] = useState(false)
 
     const { token, backendUrl, userData, setUserData, loadUserProfileData } = useContext(AppContext)
+    const { t } = useTranslation()
 
     // Function to update user profile data using API
     const updateUserProfileData = async () => {
@@ -24,6 +28,10 @@ const MyProfile = () => {
             formData.append('address', JSON.stringify(userData.address))
             formData.append('gender', userData.gender)
             formData.append('dob', userData.dob)
+            formData.append('taluka', userData.taluka || '')
+            formData.append('village', userData.village || '')
+            formData.append('language', localStorage.getItem('jalnacare-language') || 'en')
+            formData.append('notificationsEnabled', userData.notificationsEnabled !== false)
 
             image && formData.append('image', image)
 
@@ -66,6 +74,15 @@ const MyProfile = () => {
 
             <hr className='bg-[#ADADAD] h-[1px] border-none' />
 
+            <div className='rounded-2xl border border-blue-100 bg-blue-50 p-4'>
+                <p className='font-semibold text-slate-800'>{t('language')}</p>
+                <div className='mt-3'><LanguageSwitcher /></div>
+                <label className='mt-4 flex min-h-12 items-center justify-between gap-3 text-sm text-slate-700'>
+                    <span>{t('notificationsEnabled')}</span>
+                    <input type='checkbox' checked={userData.notificationsEnabled !== false} onChange={(event) => setUserData(prev => ({ ...prev, notificationsEnabled: event.target.checked }))} className='h-5 w-5 accent-blue-600' />
+                </label>
+            </div>
+
             <div>
                 <p className='text-gray-600 underline mt-3'>CONTACT INFORMATION</p>
                 <div className='grid grid-cols-[1fr_3fr] gap-y-2.5 mt-3 text-[#363636]'>
@@ -87,6 +104,11 @@ const MyProfile = () => {
                             <input className='bg-gray-50' type="text" onChange={(e) => setUserData(prev => ({ ...prev, address: { ...prev.address, line2: e.target.value } }))} value={userData.address.line2} /></p>
                         : <p className='text-gray-500'>{userData.address.line1} <br /> {userData.address.line2}</p>
                     }
+
+                    <p className='font-medium'>Taluka:</p>
+                    {isEdit ? <select className='bg-gray-50' value={userData.taluka || ''} onChange={(event) => setUserData(prev => ({ ...prev, taluka: event.target.value, village: '' }))}><option value=''>{t('selectTaluka')}</option>{JALNA_TALUKA_OPTIONS.map((item) => <option key={item}>{item}</option>)}</select> : <p className='text-gray-500'>{userData.taluka || '-'}</p>}
+                    <p className='font-medium'>Village:</p>
+                    {isEdit ? <select className='bg-gray-50' disabled={!userData.taluka} value={userData.village || ''} onChange={(event) => setUserData(prev => ({ ...prev, village: event.target.value }))}><option value=''>Select village</option>{(JALNA_TALUKAS[userData.taluka] || []).map((item) => <option key={item}>{item}</option>)}</select> : <p className='text-gray-500'>{userData.village || '-'}</p>}
 
                 </div>
             </div>

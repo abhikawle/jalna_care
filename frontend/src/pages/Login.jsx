@@ -1,82 +1,111 @@
-import React, { useContext, useEffect, useState } from 'react'
-import { AppContext } from '../context/AppContext'
+import { useContext, useEffect, useState } from 'react'
+import { ArrowLeft, LockKeyhole, Phone, ShieldCheck } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import axios from 'axios'
 import { toast } from 'react-toastify'
-import { useNavigate } from 'react-router-dom'
+import { AppContext } from '../context/AppContext'
 
 const Login = () => {
-
-  const [state, setState] = useState('Sign Up')
-
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { backendUrl, token, setToken } = useContext(AppContext)
+  const [mode, setMode] = useState('login')
+  const [step, setStep] = useState('phone')
+  const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [otp, setOtp] = useState('')
+  const [password, setPassword] = useState('')
+  const [resetToken, setResetToken] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  const onSubmitHandler = async (event) => {
-    event.preventDefault();
-
+  const sendOtp = async (event) => {
+    event.preventDefault()
+    if (!/^[6-9]\d{9}$/.test(phone.replace(/\D/g, ''))) return toast.error(t('phoneNumber'))
     try {
-      if (state === 'Sign Up') {
-        const { data } = await axios.post(backendUrl + '/api/user/register', { name, email, password })
+      setLoading(true)
+      const { data } = await axios.post(`${backendUrl}/api/auth/send-otp`, { phone, purpose: mode === 'forgot' ? 'forgot-password' : mode })
+      if (!data.success) return toast.error(data.message)
+      setStep('otp')
+      toast.success(t('otpSent'))
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message)
+    } finally {
+      setLoading(false)
+    }
+  }
 
-        if (data.success) {
-          localStorage.setItem('token', data.token)
-          setToken(data.token)
-        } else {
-          toast.error(data.message || 'Registration failed')
-        }
+  const verifyOtp = async (event) => {
+    event.preventDefault()
+    if (!/^\d{6}$/.test(otp)) return toast.error(t('enterOtp'))
+    try {
+      setLoading(true)
+      const purpose = mode === 'forgot' ? 'forgot-password' : mode
+      const { data } = await axios.post(`${backendUrl}/api/auth/verify-otp`, { phone, otp, purpose, name })
+      if (!data.success) return toast.error(data.message)
+      if (mode === 'forgot') {
+        setResetToken(data.resetToken)
+        setStep('password')
       } else {
-        const { data } = await axios.post(backendUrl + '/api/user/login', { email, password })
-
-        if (data.success) {
-          localStorage.setItem('token', data.token)
-          setToken(data.token)
-        } else {
-          toast.error(data.message || 'Login failed')
-        }
+        localStorage.setItem('token', data.token)
+        setToken(data.token)
       }
     } catch (error) {
-      console.error('Auth request failed:', error)
-      toast.error(error.response?.data?.message || 'Network error. Please check the backend server and try again.')
+      toast.error(error.response?.data?.message || error.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const resetPassword = async (event) => {
+    event.preventDefault()
+    try {
+      setLoading(true)
+      const { data } = await axios.post(`${backendUrl}/api/auth/reset-password`, { resetToken, password })
+      if (!data.success) return toast.error(data.message)
+      toast.success(data.message)
+      setMode('login')
+      setStep('phone')
+      setPassword('')
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message)
+    } finally {
+      setLoading(false)
     }
   }
 
   useEffect(() => {
-    if (token) {
-      navigate('/')
-    }
-  }, [token])
+    if (token) navigate('/')
+  }, [token, navigate])
+
+  const title = mode === 'register' ? t('register') : mode === 'forgot' ? t('resetPassword') : t('login')
 
   return (
-    <form onSubmit={onSubmitHandler} className='min-h-[80vh] flex items-center'>
-      <div className='flex flex-col gap-3 m-auto items-start p-8 min-w-[340px] sm:min-w-96 border rounded-xl text-[#5E5E5E] text-sm shadow-lg'>
-        <p className='text-2xl font-semibold'>{state === 'Sign Up' ? 'Create Account' : 'Login'}</p>
-        <p>Please {state === 'Sign Up' ? 'sign up' : 'log in'} to book appointment</p>
-        {state === 'Sign Up'
-          ? <div className='w-full '>
-            <p>Full Name</p>
-            <input onChange={(e) => setName(e.target.value)} value={name} className='border border-[#DADADA] rounded w-full p-2 mt-1' type="text" required />
-          </div>
-          : null
-        }
-        <div className='w-full '>
-          <p>Email</p>
-          <input onChange={(e) => setEmail(e.target.value)} value={email} className='border border-[#DADADA] rounded w-full p-2 mt-1' type="email" required />
-        </div>
-        <div className='w-full '>
-          <p>Password</p>
-          <input onChange={(e) => setPassword(e.target.value)} value={password} className='border border-[#DADADA] rounded w-full p-2 mt-1' type="password" required />
-        </div>
-        <button type='submit' className='bg-primary text-white w-full py-2 my-2 rounded-md text-base'>{state === 'Sign Up' ? 'Create account' : 'Login'}</button>
-        {state === 'Sign Up'
-          ? <p>Already have an account? <span onClick={() => setState('Login')} className='text-primary underline cursor-pointer'>Login here</span></p>
-          : <p>Create an new account? <span onClick={() => setState('Sign Up')} className='text-primary underline cursor-pointer'>Click here</span></p>
-        }
+    <main className='flex min-h-[78vh] items-center justify-center py-8'>
+      <div className='w-full max-w-md rounded-3xl border border-blue-100 bg-white p-6 shadow-xl shadow-blue-100 sm:p-8'>
+        <div className='mb-7 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600'><ShieldCheck size={30} aria-hidden='true' /></div>
+        <h1 className='text-3xl font-bold text-slate-900'>{title}</h1>
+        <p className='mt-2 text-sm text-slate-600'>{t('continueWithPhone')}</p>
+
+        {step === 'phone' && <form onSubmit={sendOtp} className='mt-7 space-y-4'>
+          {mode === 'register' && <label className='block text-sm font-semibold text-slate-700'>{t('fullName')}<input value={name} onChange={(event) => setName(event.target.value)} className='field min-h-12' required /></label>}
+          <label className='block text-sm font-semibold text-slate-700'>{t('phoneNumber')}<div className='mt-1 flex items-center gap-2 rounded border border-[#DADADA] px-3'><Phone size={20} className='text-blue-600' aria-hidden='true' /><span className='text-slate-500'>+91</span><input value={phone} onChange={(event) => setPhone(event.target.value.replace(/\D/g, '').slice(0, 10))} inputMode='numeric' className='min-h-12 w-full outline-none' required /></div></label>
+          <button disabled={loading} className='min-h-12 w-full rounded-xl bg-blue-600 font-bold text-white disabled:opacity-60'>{loading ? '...' : t('sendOtp')}</button>
+          {mode === 'login' && <button type='button' onClick={() => setMode('forgot')} className='w-full text-sm font-semibold text-blue-600'>{t('forgotPassword')}</button>}
+        </form>}
+
+        {step === 'otp' && <form onSubmit={verifyOtp} className='mt-7 space-y-4'>
+          <label className='block text-sm font-semibold text-slate-700'>{t('enterOtp')}<div className='mt-1 flex items-center gap-2 rounded border border-[#DADADA] px-3'><LockKeyhole size={20} className='text-blue-600' aria-hidden='true' /><input value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))} inputMode='numeric' maxLength='6' className='min-h-12 w-full text-center text-2xl tracking-[0.5em] outline-none' required /></div></label>
+          <button disabled={loading} className='min-h-12 w-full rounded-xl bg-blue-600 font-bold text-white disabled:opacity-60'>{loading ? '...' : t('verifyOtp')}</button>
+          <button type='button' onClick={() => setStep('phone')} className='flex min-h-12 w-full items-center justify-center gap-2 text-sm font-semibold text-blue-600'><ArrowLeft size={17} aria-hidden='true' />{t('changeNumber')}</button>
+        </form>}
+
+        {step === 'password' && <form onSubmit={resetPassword} className='mt-7 space-y-4'><label className='block text-sm font-semibold text-slate-700'>{t('newPassword')}<input type='password' minLength='8' value={password} onChange={(event) => setPassword(event.target.value)} className='field min-h-12' required /></label><p className='text-xs text-slate-500'>{t('passwordHint')}</p><button disabled={loading} className='min-h-12 w-full rounded-xl bg-blue-600 font-bold text-white disabled:opacity-60'>{loading ? '...' : t('resetPassword')}</button></form>}
+
+        <div className='mt-8 border-t border-slate-100 pt-5 text-center text-sm text-slate-600'>{mode === 'register' ? <button onClick={() => { setMode('login'); setStep('phone') }} className='font-semibold text-blue-600'>{t('existingPatient')}</button> : <button onClick={() => { setMode('register'); setStep('phone') }} className='font-semibold text-blue-600'>{t('newPatient')}</button>}</div>
+        {mode === 'forgot' && step === 'phone' && <button onClick={() => setMode('login')} className='mt-3 flex w-full items-center justify-center gap-2 text-sm font-semibold text-slate-500'><ArrowLeft size={17} aria-hidden='true' />{t('backToLogin')}</button>}
       </div>
-    </form>
+    </main>
   )
 }
 

@@ -1,0 +1,79 @@
+{
+  "brand": "जालना केअर",
+  "home": "मुख्यपृष्ठ",
+  "doctors": "डॉक्टर",
+  "appointments": "अपॉइंटमेंट",
+  "profile": "प्रोफाइल",
+  "login": "लॉगिन",
+  "register": "नोंदणी",
+  "registerDoctor": "डॉक्टर म्हणून नोंदणी करा",
+  "bookAppointment": "अपॉइंटमेंट बुक करा",
+  "myAppointments": "माझे अपॉइंटमेंट",
+  "homeVisit": "घरी भेट",
+  "emergency": "आपत्कालीन संपर्क",
+  "searchDoctor": "डॉक्टर शोधा",
+  "selectTaluka": "तालुका निवडा",
+  "allTalukas": "सर्व तालुके",
+  "findCare": "तुमच्या जवळ उपचार शोधा",
+  "simpleHealthcare": "जालना जिल्ह्यासाठी सोपी आरोग्यसेवा",
+  "bookAppointmentDescription": "विश्वासू डॉक्टर आणि वेळ निवडा.",
+  "myAppointmentsDescription": "तुमचे आगामी आणि जुने अपॉइंटमेंट पहा.",
+  "homeVisitDescription": "तुमच्या गावात घरी उपचार मिळवा.",
+  "emergencyDescription": "आपत्कालीन मदत लवकर मिळवा.",
+  "language": "भाषा",
+  "english": "इंग्रजी",
+  "hindi": "हिंदी",
+  "marathi": "मराठी",
+  "logout": "लॉगआउट",
+  "search": "शोधा",
+  "available": "उपलब्ध",
+  "verified": "सत्यापित",
+  "inClinic": "क्लिनिकमध्ये",
+  "video": "व्हिडिओ",
+  "confirm": "निश्चित करा",
+  "cancel": "रद्द करा",
+  "next": "पुढे",
+  "back": "मागे",
+  "save": "जतन करा",
+  "noDoctors": "डॉक्टर सापडले नाहीत",
+  "contactAfterBooking": "डॉक्टरांशी संपर्क करण्यासाठी अपॉइंटमेंट बुक करा",
+  "welcome": "स्वागत आहे",
+  "careLauncherTitle": "आज आम्ही तुमची कशी मदत करू शकतो?",
+  "careLauncherSubtitle": "जालन्यात घराजवळ विश्वासू उपचार शोधा.",
+  "location": "स्थान",
+  "chooseTaluka": "तुमचा तालुका निवडा",
+  "homeVisitToggle": "घरी भेट देणारे डॉक्टर दाखवा",
+  "emergencyCall": "आपत्कालीन परिस्थितीत 108 वर कॉल करा",
+  "emergencyCallAction": "आपत्कालीन मदतीसाठी कॉल करा",
+  "quickActions": "जलद सेवा",
+  "viewAllDoctors": "सर्व डॉक्टर पहा",
+  "careForYourVillage": "तुमच्या गावासाठी आरोग्यसेवा"
+  ,"phoneNumber": "मोबाईल नंबर"
+  ,"fullName": "पूर्ण नाव"
+  ,"enterOtp": "6 अंकी OTP टाका"
+  ,"sendOtp": "OTP पाठवा"
+  ,"verifyOtp": "OTP तपासा"
+  ,"forgotPassword": "पासवर्ड विसरलात?"
+  ,"resetPassword": "पासवर्ड बदला"
+  ,"newPassword": "नवीन पासवर्ड"
+  ,"continueWithPhone": "फोनने पुढे जा"
+  ,"newPatient": "नवीन रुग्ण? नोंदणी करा"
+  ,"existingPatient": "आधीच नोंदणी केली आहे? लॉगिन करा"
+  ,"otpSent": "तुमच्या मोबाईल नंबरवर OTP पाठवला आहे"
+  ,"changeNumber": "नंबर बदला"
+  ,"backToLogin": "लॉगिनवर परत जा"
+  ,"passwordHint": "किमान 8 अक्षरे वापरा"
+  ,"notificationsEnabled": "अपॉइंटमेंट सूचना"
+  ,"chooseSpeciality": "विशेषज्ञता निवडा"
+  ,"chooseDoctor": "डॉक्टर निवडा"
+  ,"chooseDateTime": "तारीख आणि वेळ निवडा"
+  ,"reviewBooking": "अपॉइंटमेंट तपासा"
+  ,"appointmentConfirmed": "अपॉइंटमेंट निश्चित झाले"
+  ,"appointmentId": "अपॉइंटमेंट आयडी"
+  ,"date": "तारीख"
+  ,"time": "वेळ"
+  ,"consultationType": "सल्ल्याचा प्रकार"
+  ,"callDoctor": "डॉक्टरांना कॉल करा"
+  ,"directions": "दिशा"
+  ,"step": "पायरी"
+}

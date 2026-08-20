@@ -23,6 +23,9 @@ const doctorSchema = new mongoose.Schema({
     phoneNumber: { type: String, default: '' },
     providerType: { type: String, enum: ['individual', 'clinic', 'hospital'], default: 'individual' },
     consultationModes: { type: [String], default: ['in-clinic'] },
+    homeVisitAvailable: { type: Boolean, default: false },
+    homeVisitFee: { type: Number, default: 0 },
+    serviceRadius: { type: Number, default: 0 },
     sameDayAvailable: { type: Boolean, default: false },
     
     // Ratings and reviews summary

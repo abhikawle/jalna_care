@@ -14,7 +14,7 @@ const Contact = () => {
         <div className='flex flex-col justify-center items-start gap-6'>
           <p className='font-semibold text-lg text-gray-600'>OUR OFFICE</p>
           <p className='text-gray-500'>JalnaCare Health Hub <br /> Jalna, Maharashtra, India</p>
-          <p className='text-gray-500'>Tel: +91 9422 000 000 <br /> Email: care@jalnacare.in</p>
+          <p className='text-gray-500'>Tel: +91 96731 11424</p>
           <p className='font-semibold text-lg text-gray-600'>JOIN JALNACARE</p>
           <p className='text-gray-500'>Partner with us to help local families discover trusted healthcare services in Jalna.</p>
           <button className='border border-black px-8 py-4 text-sm hover:bg-black hover:text-white transition-all duration-500'>Become a Provider</button>

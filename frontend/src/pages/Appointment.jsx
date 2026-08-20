@@ -5,6 +5,8 @@ import { assets } from '../assets/assets'
 import RelatedDoctors from '../components/RelatedDoctors'
 import axios from 'axios'
 import { toast } from 'react-toastify'
+import { JALNA_TALUKAS, JALNA_TALUKA_OPTIONS } from '../constants/jalnaLocations'
+import { useTranslation } from 'react-i18next'
 
 const Appointment = () => {
 
@@ -17,9 +19,13 @@ const Appointment = () => {
     const [slotIndex, setSlotIndex] = useState(0)
     const [slotTime, setSlotTime] = useState('')
     const [consultationType, setConsultationType] = useState('in-clinic')
+    const [patientAddress, setPatientAddress] = useState({ line1: '', taluka: '', village: '', zipcode: '' })
     const [reviews, setReviews] = useState([])
     const [reviewRating, setReviewRating] = useState(5)
     const [reviewComment, setReviewComment] = useState('')
+    const [bookingStep, setBookingStep] = useState(1)
+    const [confirmedAppointment, setConfirmedAppointment] = useState(null)
+    const { t } = useTranslation()
 
     const navigate = useNavigate()
 
@@ -148,11 +154,11 @@ const Appointment = () => {
 
         try {
 
-            const { data } = await axios.post(backendUrl + '/api/user/book-appointment', { docId, slotDate, slotTime, consultationType, isUrgent }, { headers: { token } })
+            const { data } = await axios.post(backendUrl + '/api/user/book-appointment', { docId, slotDate, slotTime, consultationType, isUrgent, patientAddress: consultationType === 'home-visit' ? patientAddress : null }, { headers: { token } })
             if (data.success) {
                 toast.success(data.message)
+                setConfirmedAppointment({ ...data, slotDate, slotTime, consultationType })
                 getDoctosData()
-                navigate('/my-appointments')
             } else {
                 toast.error(data.message)
             }
@@ -180,6 +186,19 @@ const Appointment = () => {
     return docInfo ? (
         <div>
 
+            <div className='mb-6 rounded-2xl border border-blue-100 bg-blue-50 p-4'>
+                <div className='flex items-center justify-between text-xs font-semibold text-blue-700'>
+                    {[t('chooseSpeciality'), t('chooseDoctor'), t('chooseDateTime'), t('confirm')].map((label, index) => <span key={label} className={bookingStep >= index + 1 ? 'text-blue-700' : 'text-slate-400'}>{t('step')} {index + 1}<br />{label}</span>)}
+                </div>
+                <div className='mt-3 h-2 overflow-hidden rounded-full bg-blue-100'><div className='h-full rounded-full bg-blue-600 transition-all' style={{ width: `${bookingStep * 25}%` }} /></div>
+            </div>
+
+            {confirmedAppointment && <div className='mb-6 rounded-3xl border border-green-200 bg-green-50 p-6 text-green-900'>
+                <p className='text-2xl font-bold'>{t('appointmentConfirmed')}</p>
+                <div className='mt-4 grid gap-2 text-sm sm:grid-cols-2'><p><b>{t('appointmentId')}:</b> {confirmedAppointment.appointmentId}</p><p><b>{t('doctor')}:</b> {docInfo.name}</p><p><b>{t('date')}:</b> {confirmedAppointment.slotDate}</p><p><b>{t('time')}:</b> {confirmedAppointment.slotTime}</p><p><b>{t('consultationType')}:</b> {confirmedAppointment.consultationType}</p></div>
+                <div className='mt-5 flex flex-wrap gap-3'><a href={`tel:${docInfo.phoneNumber || ''}`} className='rounded-xl bg-green-700 px-4 py-3 font-semibold text-white'>{t('callDoctor')}</a><a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(docInfo.clinicAddress?.line1 || '')}`} target='_blank' rel='noreferrer' className='rounded-xl border border-green-700 px-4 py-3 font-semibold text-green-800'>{t('directions')}</a><button onClick={() => navigate('/my-appointments')} className='rounded-xl border border-green-700 px-4 py-3 font-semibold text-green-800'>{t('myAppointments')}</button></div>
+            </div>}
+
             {/* ---------- Doctor Details ----------- */}
             <div className='flex flex-col sm:flex-row gap-4'>
                 <div>
@@ -201,15 +220,7 @@ const Appointment = () => {
                         <button className='py-0.5 px-2 border text-xs rounded-full'>{docInfo.experience}</button>
                     </div>
 
-                    {/* Clinic details if available */}
-                    {docInfo.clinicName && (
-                        <div className='mt-3 p-3 bg-blue-50 rounded text-sm text-gray-700'>
-                            <p className='font-semibold'>{docInfo.clinicName}</p>
-                            {docInfo.clinicAddress?.line1 && (
-                                <p className='text-xs text-gray-600'>{docInfo.clinicAddress.line1}{docInfo.clinicAddress.line2 ? ', ' + docInfo.clinicAddress.line2 : ''}</p>
-                            )}
-                        </div>
-                    )}
+                    <p className='mt-3 text-sm text-gray-600'>Jalna District · {docInfo.address?.taluka || 'Taluka'} · {docInfo.address?.village || 'Village'}</p>
 
                     {/* Rating display */}
                     {docInfo.avgRating > 0 && (
@@ -247,6 +258,9 @@ const Appointment = () => {
 
             {/* Booking slots */}
             <div className='sm:ml-72 sm:pl-4 mt-8 font-medium text-[#565656]'>
+                {bookingStep === 1 && <div className='mb-6 rounded-2xl border border-blue-100 bg-white p-5'><p className='text-lg font-bold text-slate-900'>{t('chooseSpeciality')}</p><p className='mt-2 text-slate-600'>{docInfo.speciality}</p><button onClick={() => setBookingStep(2)} className='mt-5 min-h-12 rounded-xl bg-blue-600 px-6 font-semibold text-white'>{t('next')}</button></div>}
+                {bookingStep === 2 && <div className='mb-6 rounded-2xl border border-blue-100 bg-white p-5'><p className='text-lg font-bold text-slate-900'>{t('chooseDoctor')}</p><p className='mt-2 text-slate-600'>{docInfo.name} · {docInfo.degree}</p><div className='mt-5 flex gap-3'><button onClick={() => setBookingStep(1)} className='min-h-12 rounded-xl border border-slate-300 px-6 font-semibold text-slate-700'>{t('back')}</button><button onClick={() => setBookingStep(3)} className='min-h-12 rounded-xl bg-blue-600 px-6 font-semibold text-white'>{t('next')}</button></div></div>}
+                {bookingStep >= 3 && <>
                 
                 {/* Consultation Type Selection */}
                 <div className='mb-6 p-5 border border-[#E1E7FF] rounded-xl bg-[#F7F9FF]'>
@@ -280,6 +294,11 @@ const Appointment = () => {
                                 <p className='text-xs text-gray-500 mt-1'>Consult from home</p>
                             </button>
                         )}
+                        {docInfo.homeVisitAvailable && (
+                            <button onClick={() => setConsultationType('home-visit')} className={`p-4 rounded-lg border-2 text-center transition ${consultationType === 'home-visit' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'}`}>
+                                <p className='text-lg font-semibold'>Home</p><p className='text-sm font-medium mt-1'>Home Visit</p><p className='text-xs text-gray-500 mt-1'>+ ₹{docInfo.homeVisitFee || 0}</p>
+                            </button>
+                        )}
                         {docInfo.sameDayAvailable && (
                             <button
                                 onClick={() => setConsultationType('same-day')}
@@ -297,6 +316,16 @@ const Appointment = () => {
                         )}
                     </div>
                 </div>
+
+                {consultationType === 'home-visit' && <div className='mb-6 p-5 border border-blue-200 rounded-xl bg-blue-50'>
+                    <p className='font-semibold text-blue-800 mb-3'>Patient address for home visit</p>
+                    <div className='grid sm:grid-cols-2 gap-3'>
+                        <input placeholder='Address line 1' value={patientAddress.line1} onChange={(event) => setPatientAddress({ ...patientAddress, line1: event.target.value })} className='field' required />
+                        <input placeholder='PIN code' value={patientAddress.zipcode} onChange={(event) => setPatientAddress({ ...patientAddress, zipcode: event.target.value })} className='field' required />
+                        <select value={patientAddress.taluka} onChange={(event) => setPatientAddress({ ...patientAddress, taluka: event.target.value, village: '' })} className='field' required><option value=''>Select taluka</option>{JALNA_TALUKA_OPTIONS.map((taluka) => <option key={taluka}>{taluka}</option>)}</select>
+                        <select value={patientAddress.village} onChange={(event) => setPatientAddress({ ...patientAddress, village: event.target.value })} className='field' disabled={!patientAddress.taluka} required><option value=''>Select village / town</option>{(JALNA_TALUKAS[patientAddress.taluka] || []).map((village) => <option key={village}>{village}</option>)}</select>
+                    </div>
+                </div>}
                 
                 <p>Booking slots</p>
                 <div className='flex gap-3 items-center w-full overflow-x-scroll mt-4'>
@@ -314,7 +343,9 @@ const Appointment = () => {
                     ))}
                 </div>
 
-                <button onClick={bookAppointment} className='bg-primary text-white text-sm font-light px-20 py-3 rounded-full my-6'>Book an appointment</button>
+                <div className='flex flex-wrap gap-3'><button onClick={() => setBookingStep(2)} className='min-h-12 rounded-xl border border-slate-300 px-6 font-semibold text-slate-700'>{t('back')}</button><button onClick={() => bookingStep === 3 ? setBookingStep(4) : bookAppointment()} className='min-h-12 rounded-xl bg-blue-600 px-8 font-semibold text-white'>{bookingStep === 3 ? t('reviewBooking') : t('confirm')}</button></div>
+                <p className='text-xs text-gray-500 mb-4'>Phone, WhatsApp, and clinic directions are shared after a successful booking.</p>
+                </>}
             </div>
 
             <div className='mt-8 rounded-2xl border border-[#DDE8FF] bg-[#F9FBFF] p-5'>

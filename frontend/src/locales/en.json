@@ -1,0 +1,79 @@
+{
+  "brand": "JalnaCare",
+  "home": "Home",
+  "doctors": "Doctors",
+  "appointments": "Appointments",
+  "profile": "Profile",
+  "login": "Login",
+  "register": "Register",
+  "registerDoctor": "Register as Doctor",
+  "bookAppointment": "Book Appointment",
+  "myAppointments": "My Appointments",
+  "homeVisit": "Home Visit",
+  "emergency": "Emergency Contact",
+  "searchDoctor": "Search doctor",
+  "selectTaluka": "Select taluka",
+  "allTalukas": "All talukas",
+  "findCare": "Find care near you",
+  "simpleHealthcare": "Simple healthcare for Jalna district",
+  "bookAppointmentDescription": "Choose a trusted doctor and time.",
+  "myAppointmentsDescription": "See your upcoming and past visits.",
+  "homeVisitDescription": "Get care at home in your village.",
+  "emergencyDescription": "Reach emergency help quickly.",
+  "language": "Language",
+  "english": "English",
+  "hindi": "Hindi",
+  "marathi": "Marathi",
+  "logout": "Logout",
+  "search": "Search",
+  "available": "Available",
+  "verified": "Verified",
+  "inClinic": "In Clinic",
+  "video": "Video",
+  "confirm": "Confirm",
+  "cancel": "Cancel",
+  "next": "Next",
+  "back": "Back",
+  "save": "Save",
+  "noDoctors": "No doctors found",
+  "contactAfterBooking": "Book an appointment to contact this doctor",
+  "welcome": "Welcome",
+  "careLauncherTitle": "How can we help today?",
+  "careLauncherSubtitle": "Find trusted care close to home in Jalna.",
+  "location": "Location",
+  "chooseTaluka": "Choose your taluka",
+  "homeVisitToggle": "Show home visit doctors",
+  "emergencyCall": "Call 108 for an emergency",
+  "emergencyCallAction": "Call emergency help",
+  "quickActions": "Quick actions",
+  "viewAllDoctors": "View all doctors",
+  "careForYourVillage": "Care for your village"
+  ,"phoneNumber": "Mobile number"
+  ,"fullName": "Full name"
+  ,"enterOtp": "Enter 6-digit OTP"
+  ,"sendOtp": "Send OTP"
+  ,"verifyOtp": "Verify OTP"
+  ,"forgotPassword": "Forgot password?"
+  ,"resetPassword": "Reset password"
+  ,"newPassword": "New password"
+  ,"continueWithPhone": "Continue with phone"
+  ,"newPatient": "New patient? Register"
+  ,"existingPatient": "Already registered? Login"
+  ,"otpSent": "OTP sent to your mobile number"
+  ,"changeNumber": "Change number"
+  ,"backToLogin": "Back to login"
+  ,"passwordHint": "Use at least 8 characters"
+  ,"notificationsEnabled": "Appointment notifications"
+  ,"chooseSpeciality": "Choose speciality"
+  ,"chooseDoctor": "Choose doctor"
+  ,"chooseDateTime": "Choose date and time"
+  ,"reviewBooking": "Review booking"
+  ,"appointmentConfirmed": "Appointment confirmed"
+  ,"appointmentId": "Appointment ID"
+  ,"date": "Date"
+  ,"time": "Time"
+  ,"consultationType": "Consultation type"
+  ,"callDoctor": "Call Doctor"
+  ,"directions": "Directions"
+  ,"step": "Step"
+}
