@@ -262,8 +262,20 @@ const listAppointment = async (req, res) => {
 
         const { userId } = req.body
         const appointments = await appointmentModel.find({ userId })
+        const safeAppointments = appointments.map((appointment) => {
+            const item = appointment.toObject()
+            if (!item.payment) {
+                item.docData = { ...item.docData }
+                delete item.docData.phoneNumber
+                delete item.docData.clinicAddress
+                if (item.docData.address) {
+                    item.docData.address = { taluka: item.docData.address.taluka, village: item.docData.address.village }
+                }
+            }
+            return item
+        })
 
-        res.json({ success: true, appointments })
+        res.json({ success: true, appointments: safeAppointments })
 
     } catch (error) {
         console.log(error)
