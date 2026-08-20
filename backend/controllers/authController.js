@@ -13,6 +13,25 @@ const normalizePhone = (value = '') => {
 const isValidPhone = (phone) => /^[6-9]\d{9}$/.test(phone)
 const hashOtp = (otp) => crypto.createHash('sha256').update(`${otp}:${process.env.OTP_HASH_SECRET || process.env.JWT_SECRET}`).digest('hex')
 
+const twilioRequest = async (path, values) => {
+    const credentials = Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString('base64')
+    const response = await fetch(`https://verify.twilio.com/v2/Services/${process.env.TWILIO_VERIFY_SERVICE_SID}${path}`, {
+        method: 'POST',
+        headers: { Authorization: `Basic ${credentials}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams(values)
+    })
+    const details = await response.json().catch(() => ({}))
+    if (!response.ok) {
+        const error = new Error(details.message || 'Twilio Verify rejected the OTP request.')
+        error.statusCode = response.status
+        throw error
+    }
+    return details
+}
+
+const sendVerifyOtp = (phone) => twilioRequest('/Verifications.json', { To: `+91${phone}`, Channel: 'sms' })
+const checkVerifyOtp = (phone, otp) => twilioRequest('/VerificationCheck.json', { To: `+91${phone}`, Code: otp })
+
 const sendSms = async (phone, otp) => {
     const { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER } = process.env
     if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
@@ -58,14 +77,21 @@ const sendOtp = async (req, res) => {
         if (purpose === 'register' && user) return res.status(409).json({ success: false, message: 'This phone number is already registered.' })
         if (purpose === 'forgot-password' && !user) return res.status(404).json({ success: false, message: 'No account found for this phone number.' })
 
-        const otp = String(crypto.randomInt(100000, 1000000))
-        await otpModel.findOneAndUpdate(
-            { phone, purpose },
-            { otpHash: hashOtp(otp), expiresAt: new Date(Date.now() + 5 * 60 * 1000), attempts: 0 },
-            { upsert: true, new: true }
-        )
-        const delivered = await sendSms(phone, otp)
-        if (!delivered && process.env.NODE_ENV === 'production') return res.status(503).json({ success: false, message: 'OTP service is not configured. Add TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER on Render.' })
+        const useTwilioVerify = Boolean(process.env.TWILIO_VERIFY_SERVICE_SID)
+        let delivered = false
+        if (useTwilioVerify) {
+            await sendVerifyOtp(phone)
+            delivered = true
+        } else {
+            const otp = String(crypto.randomInt(100000, 1000000))
+            await otpModel.findOneAndUpdate(
+                { phone, purpose },
+                { otpHash: hashOtp(otp), expiresAt: new Date(Date.now() + 5 * 60 * 1000), attempts: 0 },
+                { upsert: true, new: true }
+            )
+            delivered = await sendSms(phone, otp)
+        }
+        if (!delivered && process.env.NODE_ENV === 'production') return res.status(503).json({ success: false, message: 'OTP service is not configured. Add Twilio Verify or Messaging credentials on Render.' })
         return res.json({ success: true, message: 'OTP sent successfully.' })
     } catch (error) {
         console.log(error)
@@ -78,14 +104,19 @@ const verifyOtp = async (req, res) => {
         const phone = normalizePhone(req.body.phone)
         const purpose = req.body.purpose || 'login'
         const otp = String(req.body.otp || '')
-        const record = await otpModel.findOne({ phone, purpose })
-        if (!record || record.expiresAt < new Date()) return res.status(400).json({ success: false, message: 'OTP expired. Request a new code.' })
-        if (record.attempts >= 5) return res.status(429).json({ success: false, message: 'Too many attempts. Request a new code.' })
-        if (!/^\d{6}$/.test(otp) || hashOtp(otp) !== record.otpHash) {
+        if (process.env.TWILIO_VERIFY_SERVICE_SID) {
+            const verification = await checkVerifyOtp(phone, otp)
+            if (verification.status !== 'approved') return res.status(400).json({ success: false, message: 'Invalid or expired OTP.' })
+        }
+
+        const record = process.env.TWILIO_VERIFY_SERVICE_SID ? null : await otpModel.findOne({ phone, purpose })
+        if (!process.env.TWILIO_VERIFY_SERVICE_SID && (!record || record.expiresAt < new Date())) return res.status(400).json({ success: false, message: 'OTP expired. Request a new code.' })
+        if (!process.env.TWILIO_VERIFY_SERVICE_SID && record.attempts >= 5) return res.status(429).json({ success: false, message: 'Too many attempts. Request a new code.' })
+        if (!process.env.TWILIO_VERIFY_SERVICE_SID && (!/^\d{6}$/.test(otp) || hashOtp(otp) !== record.otpHash)) {
             await otpModel.updateOne({ _id: record._id }, { $inc: { attempts: 1 } })
             return res.status(400).json({ success: false, message: 'Invalid OTP.' })
         }
-        await otpModel.deleteOne({ _id: record._id })
+        if (record) await otpModel.deleteOne({ _id: record._id })
 
         if (purpose === 'register') {
             const { name } = req.body
@@ -101,7 +132,7 @@ const verifyOtp = async (req, res) => {
         return res.json({ success: true, token: jwt.sign({ id: user._id }, process.env.JWT_SECRET) })
     } catch (error) {
         console.log(error)
-        return res.status(500).json({ success: false, message: error.message })
+        return res.status(error.statusCode || 500).json({ success: false, message: error.message })
     }
 }
 
