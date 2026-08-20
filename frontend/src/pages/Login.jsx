@@ -11,13 +11,32 @@ const Login = () => {
   const navigate = useNavigate()
   const { backendUrl, token, setToken } = useContext(AppContext)
   const [mode, setMode] = useState('login')
+  const [authMethod, setAuthMethod] = useState('phone')
   const [step, setStep] = useState('phone')
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
+  const [email, setEmail] = useState('')
   const [otp, setOtp] = useState('')
   const [password, setPassword] = useState('')
   const [resetToken, setResetToken] = useState('')
   const [loading, setLoading] = useState(false)
+
+  const emailAuth = async (event) => {
+    event.preventDefault()
+    try {
+      setLoading(true)
+      const endpoint = mode === 'register' ? '/api/user/register' : '/api/user/login'
+      const payload = mode === 'register' ? { name, email, password } : { email, password }
+      const { data } = await axios.post(`${backendUrl}${endpoint}`, payload)
+      if (!data.success) return toast.error(data.message)
+      localStorage.setItem('token', data.token)
+      setToken(data.token)
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const sendOtp = async (event) => {
     event.preventDefault()
@@ -87,7 +106,14 @@ const Login = () => {
         <h1 className='text-3xl font-bold text-slate-900'>{title}</h1>
         <p className='mt-2 text-sm text-slate-600'>{t('continueWithPhone')}</p>
 
-        {step === 'phone' && <form onSubmit={sendOtp} className='mt-7 space-y-4'>
+        {authMethod === 'email' && <form onSubmit={emailAuth} className='mt-7 space-y-4'>
+          {mode === 'register' && <label className='block text-sm font-semibold text-slate-700'>{t('fullName')}<input value={name} onChange={(event) => setName(event.target.value)} className='field min-h-12' required /></label>}
+          <label className='block text-sm font-semibold text-slate-700'>{t('emailAddress')}<input type='email' value={email} onChange={(event) => setEmail(event.target.value)} className='field min-h-12' required /></label>
+          <label className='block text-sm font-semibold text-slate-700'>{t('password')}<input type='password' minLength='8' value={password} onChange={(event) => setPassword(event.target.value)} className='field min-h-12' required /></label>
+          <button disabled={loading} className='min-h-12 w-full rounded-xl bg-blue-600 font-bold text-white disabled:opacity-60'>{loading ? '...' : mode === 'register' ? t('createAccount') : t('login')}</button>
+        </form>}
+
+        {authMethod === 'phone' && step === 'phone' && <form onSubmit={sendOtp} className='mt-7 space-y-4'>
           {mode === 'register' && <label className='block text-sm font-semibold text-slate-700'>{t('fullName')}<input value={name} onChange={(event) => setName(event.target.value)} className='field min-h-12' required /></label>}
           <label className='block text-sm font-semibold text-slate-700'>{t('phoneNumber')}<div className='mt-1 flex items-center gap-2 rounded border border-[#DADADA] px-3'><Phone size={20} className='text-blue-600' aria-hidden='true' /><span className='text-slate-500'>+91</span><input value={phone} onChange={(event) => setPhone(event.target.value.replace(/\D/g, '').slice(0, 10))} inputMode='numeric' className='min-h-12 w-full outline-none' required /></div></label>
           <button disabled={loading} className='min-h-12 w-full rounded-xl bg-blue-600 font-bold text-white disabled:opacity-60'>{loading ? '...' : t('sendOtp')}</button>
@@ -103,6 +129,7 @@ const Login = () => {
         {step === 'password' && <form onSubmit={resetPassword} className='mt-7 space-y-4'><label className='block text-sm font-semibold text-slate-700'>{t('newPassword')}<input type='password' minLength='8' value={password} onChange={(event) => setPassword(event.target.value)} className='field min-h-12' required /></label><p className='text-xs text-slate-500'>{t('passwordHint')}</p><button disabled={loading} className='min-h-12 w-full rounded-xl bg-blue-600 font-bold text-white disabled:opacity-60'>{loading ? '...' : t('resetPassword')}</button></form>}
 
         <div className='mt-8 border-t border-slate-100 pt-5 text-center text-sm text-slate-600'>{mode === 'register' ? <button onClick={() => { setMode('login'); setStep('phone') }} className='font-semibold text-blue-600'>{t('existingPatient')}</button> : <button onClick={() => { setMode('register'); setStep('phone') }} className='font-semibold text-blue-600'>{t('newPatient')}</button>}</div>
+        <button type='button' onClick={() => { setAuthMethod(authMethod === 'phone' ? 'email' : 'phone'); setStep('phone') }} className='mt-4 w-full text-sm font-semibold text-blue-600'>{authMethod === 'phone' ? t('emailLogin') : t('continueWithPhone')}</button>
         {mode === 'forgot' && step === 'phone' && <button onClick={() => setMode('login')} className='mt-3 flex w-full items-center justify-center gap-2 text-sm font-semibold text-slate-500'><ArrowLeft size={17} aria-hidden='true' />{t('backToLogin')}</button>}
       </div>
     </main>

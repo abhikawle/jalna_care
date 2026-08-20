@@ -76,4 +76,8 @@
   ,"callDoctor": "डॉक्टर को कॉल करें"
   ,"directions": "दिशाएं"
   ,"step": "चरण"
+  ,"emailLogin": "ईमेल और पासवर्ड से लॉगिन करें"
+  ,"emailAddress": "ईमेल पता"
+  ,"password": "पासवर्ड"
+  ,"createAccount": "खाता बनाएं"
 }

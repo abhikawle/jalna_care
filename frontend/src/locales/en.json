@@ -76,4 +76,8 @@
   ,"callDoctor": "Call Doctor"
   ,"directions": "Directions"
   ,"step": "Step"
+  ,"emailLogin": "Use email and password"
+  ,"emailAddress": "Email address"
+  ,"password": "Password"
+  ,"createAccount": "Create account"
 }
