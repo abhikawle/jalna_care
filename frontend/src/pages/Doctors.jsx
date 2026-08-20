@@ -19,9 +19,36 @@ const Doctors = () => {
   const [searchTerm, setSearchTerm] = useState(queryParam)
   const [selectedArea, setSelectedArea] = useState(talukaParam)
   const [consultationFilter, setConsultationFilter] = useState('all')
+  const [nearbyOnly, setNearbyOnly] = useState(false)
+  const [patientLocation, setPatientLocation] = useState(null)
+  const [locationMessage, setLocationMessage] = useState('')
   const navigate = useNavigate();
 
   const { doctors } = useContext(AppContext)
+
+  const requestNearbyDoctors = () => {
+    if (!navigator.geolocation) return setLocationMessage('Location is not supported by this browser.')
+    setLocationMessage('Requesting your location...')
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setPatientLocation({ latitude: coords.latitude, longitude: coords.longitude })
+        setNearbyOnly(true)
+        setLocationMessage('Showing doctors within their service radius.')
+      },
+      () => setLocationMessage('Allow location access to find nearby doctors.'),
+      { enableHighAccuracy: true, timeout: 10000 }
+    )
+  }
+
+  const distanceInKm = (first, second) => {
+    const earthRadius = 6371
+    const latitudeDelta = (second.latitude - first.latitude) * Math.PI / 180
+    const longitudeDelta = (second.longitude - first.longitude) * Math.PI / 180
+    const latitudeOne = first.latitude * Math.PI / 180
+    const latitudeTwo = second.latitude * Math.PI / 180
+    const value = Math.sin(latitudeDelta / 2) ** 2 + Math.sin(longitudeDelta / 2) ** 2 * Math.cos(latitudeOne) * Math.cos(latitudeTwo)
+    return earthRadius * 2 * Math.atan2(Math.sqrt(value), Math.sqrt(1 - value))
+  }
 
   const areaOptions = Array.from(new Set(
     doctors
@@ -95,6 +122,10 @@ const Doctors = () => {
       filtered = filtered.filter((doc) => doc.homeVisitAvailable === true)
     }
 
+    if (nearbyOnly && patientLocation) {
+      filtered = filtered.filter((doc) => Number.isFinite(doc.latitude) && Number.isFinite(doc.longitude) && doc.serviceRadius > 0 && distanceInKm(patientLocation, { latitude: doc.latitude, longitude: doc.longitude }) <= doc.serviceRadius)
+    }
+
     // Apply sorting
     if (sortBy === 'rating') {
       filtered.sort((a, b) => (b.avgRating || 0) - (a.avgRating || 0))
@@ -115,7 +146,7 @@ const Doctors = () => {
 
   useEffect(() => {
     applyFilter()
-  }, [doctors, speciality, careNeed, queryParam, talukaParam, sortBy, searchTerm, selectedArea, consultationFilter])
+  }, [doctors, speciality, careNeed, queryParam, talukaParam, sortBy, searchTerm, selectedArea, consultationFilter, nearbyOnly, patientLocation])
 
   return (
     <div>
@@ -157,6 +188,12 @@ const Doctors = () => {
               <option value='video'>Video consults</option>
               <option value='home-visit'>Home visits</option>
             </select>
+          </div>
+
+          <div className='rounded border border-blue-100 bg-blue-50 p-3'>
+            <button onClick={requestNearbyDoctors} className='min-h-12 w-full rounded bg-blue-600 px-4 py-2 font-semibold text-white'>Find doctors near me</button>
+            {nearbyOnly && <button onClick={() => { setNearbyOnly(false); setPatientLocation(null); setLocationMessage('') }} className='mt-2 w-full text-xs text-blue-700'>Show all doctors</button>}
+            {locationMessage && <p className='mt-2 text-xs text-blue-800'>{locationMessage}</p>}
           </div>
 
           <div>

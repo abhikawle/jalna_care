@@ -12,12 +12,13 @@ const DoctorRegister = () => {
   const navigate = useNavigate()
   const [form, setForm] = useState({
     name: '', email: '', password: '', confirmPassword: '', phoneNumber: '', speciality: '', degree: '',
-    experience: '', about: '', fees: '', clinicName: '', providerType: 'individual',
+    experience: '', about: '', fees: '', clinicName: '', providerType: 'individual', latitude: '', longitude: '',
     consultationModes: ['in-clinic'], homeVisitAvailable: false, homeVisitFee: '', serviceRadius: '', sameDayAvailable: false
   })
   const [address, setAddress] = useState(initialAddress)
   const [image, setImage] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+  const [locationStatus, setLocationStatus] = useState('')
 
   const updateForm = (event) => setForm({ ...form, [event.target.name]: event.target.value })
   const updateAddress = (event) => {
@@ -31,6 +32,19 @@ const DoctorRegister = () => {
       ? form.consultationModes.filter((item) => item !== mode)
       : [...form.consultationModes, mode]
   })
+
+  const captureLocation = () => {
+    if (!navigator.geolocation) return setLocationStatus('Location is not supported by this browser.')
+    setLocationStatus('Requesting clinic location...')
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setForm((previous) => ({ ...previous, latitude: coords.latitude, longitude: coords.longitude }))
+        setLocationStatus('Clinic location saved.')
+      },
+      () => setLocationStatus('Allow location access to offer nearby discovery.'),
+      { enableHighAccuracy: true, timeout: 10000 }
+    )
+  }
 
   const onSubmit = async (event) => {
     event.preventDefault()
@@ -53,6 +67,8 @@ const DoctorRegister = () => {
     formData.append('homeVisitAvailable', form.homeVisitAvailable)
     formData.append('taluka', address.taluka)
     formData.append('village', address.village)
+    formData.append('latitude', form.latitude)
+    formData.append('longitude', form.longitude)
     formData.append('address', JSON.stringify(address))
     formData.append('clinicAddress', JSON.stringify(address))
     formData.append('image', image)
@@ -112,7 +128,7 @@ const DoctorRegister = () => {
         <div className='flex flex-wrap gap-4'>
           {['in-clinic', 'video', 'home-visit'].map((mode) => <label key={mode} className='flex items-center gap-2'><input type='checkbox' checked={form.consultationModes.includes(mode)} onChange={() => toggleMode(mode)} />{mode === 'home-visit' ? 'Home visit' : mode}</label>)}
           <label className='flex items-center gap-2'><input type='checkbox' checked={form.homeVisitAvailable} onChange={(event) => setForm({ ...form, homeVisitAvailable: event.target.checked, consultationModes: event.target.checked && !form.consultationModes.includes('home-visit') ? [...form.consultationModes, 'home-visit'] : form.consultationModes })} />Home visit available</label>
-          {form.homeVisitAvailable && <><label>Home visit fee<input name='homeVisitFee' type='number' min='0' value={form.homeVisitFee} onChange={updateForm} required className='field' /></label><label>Service radius (km)<input name='serviceRadius' type='number' min='1' value={form.serviceRadius} onChange={updateForm} required className='field' /></label></>}
+          {form.homeVisitAvailable && <><label>Home visit fee<input name='homeVisitFee' type='number' min='0' value={form.homeVisitFee} onChange={updateForm} required className='field' /></label><label>Service radius (km)<input name='serviceRadius' type='number' min='1' value={form.serviceRadius} onChange={updateForm} required className='field' /></label><div className='sm:col-span-2'><button type='button' onClick={captureLocation} className='rounded border border-blue-600 px-4 py-2 text-blue-700'>Use clinic GPS location</button><p className='mt-2 text-xs text-gray-500'>{locationStatus || 'Save your clinic location so nearby patients can find you.'}</p></div></>}
           <label className='flex items-center gap-2'><input type='checkbox' name='sameDayAvailable' checked={form.sameDayAvailable} onChange={(event) => setForm({ ...form, sameDayAvailable: event.target.checked })} />Same-day availability</label>
         </div>
 

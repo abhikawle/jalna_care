@@ -26,6 +26,8 @@ const doctorSchema = new mongoose.Schema({
     homeVisitAvailable: { type: Boolean, default: false },
     homeVisitFee: { type: Number, default: 0 },
     serviceRadius: { type: Number, default: 0 },
+    latitude: { type: Number, default: null },
+    longitude: { type: Number, default: null },
     sameDayAvailable: { type: Boolean, default: false },
     
     // Ratings and reviews summary

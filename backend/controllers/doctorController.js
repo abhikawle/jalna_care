@@ -30,7 +30,7 @@ const parseObject = (value, fieldName) => {
 // Public provider application. Verification fields are deliberately not read from the request.
 const registerDoctor = async (req, res) => {
     try {
-        const { name, email, password, confirmPassword, phoneNumber, speciality, degree, experience, about, fees, clinicName, providerType, sameDayAvailable, homeVisitAvailable, homeVisitFee, serviceRadius, taluka, village } = req.body
+        const { name, email, password, confirmPassword, phoneNumber, speciality, degree, experience, about, fees, clinicName, providerType, sameDayAvailable, homeVisitAvailable, homeVisitFee, serviceRadius, latitude, longitude, taluka, village } = req.body
         const imageFile = req.file
 
         if (!name || !email || !password || !speciality || !degree || !experience || !about || !fees || !clinicName || !phoneNumber || !req.body.address || !imageFile) {
@@ -93,6 +93,8 @@ const registerDoctor = async (req, res) => {
             homeVisitAvailable: homeVisitAvailable === true || homeVisitAvailable === 'true',
             homeVisitFee: Number(homeVisitFee) || 0,
             serviceRadius: Number(serviceRadius) || 0,
+            latitude: Number.isFinite(Number(latitude)) ? Number(latitude) : null,
+            longitude: Number.isFinite(Number(longitude)) ? Number(longitude) : null,
             sameDayAvailable: sameDayAvailable === true || sameDayAvailable === 'true',
             verificationStatus: 'pending',
             isVerified: false,
