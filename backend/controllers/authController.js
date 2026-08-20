@@ -31,7 +31,18 @@ const sendSms = async (phone, otp) => {
         headers: { Authorization: `Basic ${credentials}`, 'Content-Type': 'application/x-www-form-urlencoded' },
         body
     })
-    if (!response.ok) throw new Error('Unable to send OTP')
+    if (!response.ok) {
+        let message = 'Twilio rejected the OTP request.'
+        try {
+            const details = await response.json()
+            if (details.message) message = details.message
+        } catch {
+            // Keep a useful fallback when Twilio does not return JSON.
+        }
+        const error = new Error(message)
+        error.statusCode = response.status
+        throw error
+    }
     return true
 }
 
@@ -54,11 +65,11 @@ const sendOtp = async (req, res) => {
             { upsert: true, new: true }
         )
         const delivered = await sendSms(phone, otp)
-        if (!delivered && process.env.NODE_ENV === 'production') return res.status(503).json({ success: false, message: 'OTP service is not configured.' })
+        if (!delivered && process.env.NODE_ENV === 'production') return res.status(503).json({ success: false, message: 'OTP service is not configured. Add TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER on Render.' })
         return res.json({ success: true, message: 'OTP sent successfully.' })
     } catch (error) {
         console.log(error)
-        return res.status(500).json({ success: false, message: error.message })
+        return res.status(error.statusCode || 500).json({ success: false, message: error.message })
     }
 }
 
